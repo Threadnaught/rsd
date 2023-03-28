@@ -9,6 +9,7 @@ static PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 	char* path;
 	int samplerate_hz=44100;
 	int clip_len_ms=750;
+	int run_in_samples=10000; // TODO: parameterise
 
 	static char* keywords[] = {"path", "samplerate_hz", "clip_len_ms"};
 
@@ -25,7 +26,7 @@ static PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 	}
 
 	if(init(path, samplerate_hz, clip_len_ms) != 0){
-		PyErr_SetString(PyExc_RuntimeError, "Attempt to re-init arsd");
+		PyErr_SetString(PyExc_RuntimeError, "arsd init failed");
 		PyErr_Occurred();
 	}
 

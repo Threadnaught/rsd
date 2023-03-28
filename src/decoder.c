@@ -52,7 +52,7 @@ int BLOCKING_draw_clip(float** output, int64_t* output_samples){
 	AVFrame* frame;
 
 	AVRational timebase_s;
-	int32_t samples_per_tb;
+	int32_t tb_per_sample;
 
 	int64_t file_len_tb;
 	int64_t file_len_samples;
@@ -74,16 +74,19 @@ int BLOCKING_draw_clip(float** output, int64_t* output_samples){
 
 	//Finding the seek point
 	timebase_s = format_context->streams[chosen_stream]->time_base;
-	samples_per_tb = timebase_s.den / (timebase_s.num * samplerate_hz);
+	tb_per_sample = timebase_s.den / (timebase_s.num * samplerate_hz);
 
 	file_len_tb = format_context->streams[chosen_stream]->duration;
-	return_if((file_len_tb % samples_per_tb) != 0, -1);
-	file_len_samples = file_len_tb / samples_per_tb;
+	return_if((file_len_tb % tb_per_sample) != 0, -1);
+	file_len_samples = file_len_tb / tb_per_sample;
 
 	seek_point_samples =
 		((((long)rand()) << 32) | ((long)rand()))
 		% (long)(file_len_samples - clip_len_samples);
-	seek_point_tb = seek_point_samples * samples_per_tb;
+
+	// Due to MP3 being weird, we need to start decoding ~2000 samples before we start to read
+	seek_point_tb = (seek_point_samples - 2000) * tb_per_sample;
+	seek_point_tb = seek_point_tb < 0 ? 0 : seek_point_tb;
 	
 	return_if(avformat_seek_file(format_context, chosen_stream, 0, seek_point_tb, seek_point_tb, 0) < 0, -1);
 
@@ -116,21 +119,23 @@ int BLOCKING_draw_clip(float** output, int64_t* output_samples){
 			return_if(frame->format != AV_SAMPLE_FMT_FLTP, -1); // Assert that we are dealing in 4-byte floats
 
 			//pts_samples is the presentation timestamp in terms of samples
-			return_if(frame->pts % samples_per_tb != 0, -1);
-			pts_samples = frame->pts / samples_per_tb;
+			return_if(frame->pts % tb_per_sample != 0, -1);
+			pts_samples = frame->pts / tb_per_sample;
 			
 			//read_start_samples and read_end_samples are relative to the returned frame
 			read_start_samples = seek_point_samples - pts_samples;
+			read_start_samples = read_start_samples > frame->nb_samples ? frame->nb_samples : read_start_samples;
 			read_start_samples = read_start_samples > 0 ? read_start_samples : 0;
-			// fprintf(stderr, "read_start_samples %li ", read_start_samples);
+
+			fprintf(stderr, "read_start_samples %li ", read_start_samples);
 
 			read_end_samples = clip_len_samples - (*output_samples);
 			read_end_samples = read_end_samples > frame->nb_samples ? frame->nb_samples : read_end_samples;
-			// fprintf(stderr, "read_end_samples %li\n", read_end_samples);
+			fprintf(stderr, "read_end_samples %li ", read_end_samples);
 
 			// fprintf(stderr, "dest %p ", output_buffer + (*output_samples));
 			// fprintf(stderr, "src %p ", ((float*)frame->data[0]) + read_start_samples);
-			// fprintf(stderr, "count %li\n", (read_end_samples - read_start_samples) * sizeof(float));
+			fprintf(stderr, "count %li\n", (read_end_samples - read_start_samples));
 
 			memcpy(
 				output_buffer + (*output_samples),
