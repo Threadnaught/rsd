@@ -39,11 +39,17 @@ static PyObject* py_arsd_draw(PyObject *self){
 		PyErr_SetString(PyExc_RuntimeError, "Could not draw clip");
 		PyErr_Occurred();
 	}
-	Py_RETURN_NONE;
+
+	npy_intp dims[1] = {output_size};
+
+	PyObject* arr = PyArray_SimpleNewFromData(1, dims, NPY_FLOAT32, output);
+	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA); // TODO: there has been some debate over wheter this is a correct dellocator
+
+	return arr;
 }
 
 static PyMethodDef arsd_methods[] = {
-	{"init",					py_arsd_init,	METH_VARARGS | METH_KEYWORDS,	""},
+	{"init",				py_arsd_init,	METH_VARARGS | METH_KEYWORDS,	""},
 	{"BLOCKING_draw_clip",	py_arsd_draw,	METH_NOARGS, 					""},
 	{NULL,						NULL,		0,	NULL}
 };
