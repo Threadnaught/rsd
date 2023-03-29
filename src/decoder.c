@@ -1,5 +1,5 @@
-#include<string.h>
-#include<stdio.h>
+#include <string.h>
+#include <stdio.h>
 
 #include "arsd.h"
 
@@ -139,7 +139,7 @@ int BLOCKING_draw_clip(float** output, int64_t* output_samples){
 
 			memcpy(
 				output_buffer + (*output_samples),
-				((float*)frame->data[0]) + read_start_samples,
+				((float*)frame->data[0]) + read_start_samples, // TODO: average all channels
 				(read_end_samples - read_start_samples) * sizeof(float)
 			);
 

@@ -1,9 +1,22 @@
+#include <time.h>
+#include <sys/time.h>
+
 #include "arsd.h"
 
 #include <Python.h>
 
 #include "numpy/ndarraytypes.h"
 #include "numpy/arrayobject.h"
+
+#define timer(instruction, short_name) {\
+	struct timeval start, end; \
+	int64_t diff; \
+	gettimeofday(&start, NULL); \
+	{instruction;} \
+	gettimeofday(&end, NULL); \
+	diff = ((end.tv_sec - start.tv_sec) * 1000 * 1000) + ((end.tv_usec - start.tv_usec)); \
+	fprintf(stderr, "%s took %li us\n", #short_name, diff); \
+}
 
 static PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 	char* path;
@@ -36,10 +49,10 @@ static PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 static PyObject* py_arsd_draw(PyObject *self){
 	float* output;
 	int output_size;
-	if(BLOCKING_draw_clip(&output, &output_size) != 0){
+	timer(if(BLOCKING_draw_clip(&output, &output_size) != 0){
 		PyErr_SetString(PyExc_RuntimeError, "Could not draw clip");
 		PyErr_Occurred();
-	}
+	}, BLOCKING_draw_clip);
 
 	npy_intp dims[1] = {output_size};
 
