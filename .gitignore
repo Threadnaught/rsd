@@ -3,3 +3,7 @@ stolen*
 old
 bin
 .vscode
+*.so
+log
+build
+__pycache__
