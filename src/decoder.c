@@ -93,7 +93,7 @@ int BLOCKING_draw_clip(float** output, int64_t* output_samples){
 	*output_samples = 0;
 	float* output_buffer = malloc(file_len_samples * sizeof(float));
 
-	fprintf(stderr, "clip_len_samples %li output_samples %li\n", clip_len_samples, (*output_samples));
+	fprintf(stderr, "clip_len_samples %i output_samples %li\n", clip_len_samples, (*output_samples));
 
 	// The fun bit
 	while ((*output_samples) < clip_len_samples) {
