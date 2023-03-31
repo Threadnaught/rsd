@@ -6,12 +6,11 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
-static char* path;
 static int samplerate_hz;
 static int clip_len_samples;
 static int inited = 0;
 
-int init(char* path_in, int samplerate_hz_in, int clip_len_ms_in){
+int init(int samplerate_hz_in, int clip_len_ms_in){
 	int clip_length_samplerate_product;
 	//Trap attepmpts to re-init
 	if(inited){
@@ -19,7 +18,6 @@ int init(char* path_in, int samplerate_hz_in, int clip_len_ms_in){
 	}
 	inited = 1;
 	//Set trivial variables
-	path = path_in;
 	samplerate_hz = samplerate_hz_in;
 	
 	//For this case, I think we should warn and keep moving
@@ -40,7 +38,7 @@ int init(char* path_in, int samplerate_hz_in, int clip_len_ms_in){
 }
 
 // TODO: cleanup buffer on unhappy path
-int BLOCKING_draw_clip(float** output, int64_t* output_samples){
+int BLOCKING_draw_clip(char* filename, float** output, int64_t* output_samples){
 	AVFormatContext* format_context = NULL;
 
 	int chosen_stream = 0;
@@ -59,7 +57,7 @@ int BLOCKING_draw_clip(float** output, int64_t* output_samples){
 	int64_t seek_point_samples;
 	int64_t seek_point_tb;
 
-	return_if(avformat_open_input(&format_context, path, NULL, NULL) != 0, -1);
+	return_if(avformat_open_input(&format_context, filename, NULL, NULL) != 0, -1);
 	return_if(avformat_find_stream_info(format_context, NULL) != 0, -1);
 	return_if(
 		(chosen_stream = av_find_best_stream(format_context, AVMEDIA_TYPE_AUDIO, -1, -1, &decoder, 0)) < 0,
@@ -93,7 +91,7 @@ int BLOCKING_draw_clip(float** output, int64_t* output_samples){
 	*output_samples = 0;
 	float* output_buffer = malloc(file_len_samples * sizeof(float));
 
-	fprintf(stderr, "clip_len_samples %i output_samples %li\n", clip_len_samples, (*output_samples));
+	// fprintf(stderr, "clip_len_samples %i output_samples %li\n", clip_len_samples, (*output_samples));
 
 	// The fun bit
 	while ((*output_samples) < clip_len_samples) {
@@ -127,15 +125,13 @@ int BLOCKING_draw_clip(float** output, int64_t* output_samples){
 			read_start_samples = read_start_samples > frame->nb_samples ? frame->nb_samples : read_start_samples;
 			read_start_samples = read_start_samples > 0 ? read_start_samples : 0;
 
-			fprintf(stderr, "read_start_samples %li ", read_start_samples);
+			// fprintf(stderr, "read_start_samples %li ", read_start_samples);
 
 			read_end_samples = clip_len_samples - (*output_samples);
 			read_end_samples = read_end_samples > frame->nb_samples ? frame->nb_samples : read_end_samples;
-			fprintf(stderr, "read_end_samples %li ", read_end_samples);
+			// fprintf(stderr, "read_end_samples %li ", read_end_samples);
 
-			// fprintf(stderr, "dest %p ", output_buffer + (*output_samples));
-			// fprintf(stderr, "src %p ", ((float*)frame->data[0]) + read_start_samples);
-			fprintf(stderr, "count %li\n", (read_end_samples - read_start_samples));
+			// fprintf(stderr, "count %li\n", (read_end_samples - read_start_samples));
 
 			memcpy(
 				output_buffer + (*output_samples),
