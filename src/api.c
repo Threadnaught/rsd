@@ -20,7 +20,7 @@
 
 static int get_function_argument(PyObject *object, void *address){
 	if(!PyFunction_Check(object)){
-		PyErr_SetString(PyExc_RuntimeError, "File picker must be a function"); // TODO: there's got to be a better error for this
+		PyErr_SetString(PyExc_ValueError, "File picker must be a function");
 		return 0;
 	}
 	PyFunctionObject** address_typed = (PyFunctionObject**)address;
@@ -31,6 +31,7 @@ static int get_function_argument(PyObject *object, void *address){
 
 static PyFunctionObject* batch_picker = NULL;
 static int inited; // TODO
+static int batch_size;
 
 static int pick_batch(int set_i, char** dest){
 	if(!batch_picker)
@@ -87,26 +88,38 @@ static PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 	int samplerate_hz=44100;
 	int clip_len_ms=750;
 
-	int batch_size_local = 100;
-	// int run_in_samples=2000; // TODO: parameterise
+	int run_in_samples=2000;
 
-	static char* keywords[] = {"pick_batch", "samplerate_hz", "clip_len_ms"};
+	static char* keywords[] = {
+		"pick_batch",
+		"batch_size",
+		"samplerate_hz",
+		"clip_len_ms",
+		"run_in_samples",
+		NULL
+	};
 
 	if(!PyArg_ParseTupleAndKeywords(
 		args,
 		kwargs,
-		"O&|ii",
+		"O&i|iiii",
 		keywords,
 		get_function_argument, &batch_picker,
+		&batch_size,
 		&samplerate_hz,
-		&clip_len_ms)
+		&clip_len_ms,
+		&run_in_samples)
 	){
 		return NULL;
 	}
 
+	if(batch_size >= max_batch_size){
+		PyErr_SetString(PyExc_RuntimeError, "max_batch_size exceeded");
+		PyErr_Occurred();
+	}
 	//TODO: integrate grab and validate max batch size
 
-	if(init(samplerate_hz, clip_len_ms) != 0){
+	if(init(samplerate_hz, clip_len_ms, run_in_samples) != 0){
 		PyErr_SetString(PyExc_RuntimeError, "arsd init failed");
 		PyErr_Occurred();
 	}

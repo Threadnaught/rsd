@@ -9,8 +9,9 @@
 static int samplerate_hz;
 static int clip_len_samples;
 static int inited = 0;
+static int run_in_samples;
 
-int init(int samplerate_hz_in, int clip_len_ms_in){
+int init(int samplerate_hz_in, int clip_len_ms_in, int run_in_samples_in){
 	int clip_length_samplerate_product;
 	//Trap attepmpts to re-init
 	if(inited){
@@ -19,6 +20,7 @@ int init(int samplerate_hz_in, int clip_len_ms_in){
 	inited = 1;
 	//Set trivial variables
 	samplerate_hz = samplerate_hz_in;
+	run_in_samples = run_in_samples_in;
 	
 	//For this case, I think we should warn and keep moving
 	clip_length_samplerate_product = samplerate_hz_in * clip_len_ms_in;
@@ -83,7 +85,7 @@ int BLOCKING_draw_clip(char* filename, float** output, int64_t* output_samples){
 		% (long)(file_len_samples - clip_len_samples);
 
 	// Due to MP3 being weird, we need to start decoding ~2000 samples before we start to read
-	seek_point_tb = (seek_point_samples - 2000) * tb_per_sample;
+	seek_point_tb = (seek_point_samples - run_in_samples) * tb_per_sample;
 	seek_point_tb = seek_point_tb < 0 ? 0 : seek_point_tb;
 	
 	return_if(avformat_seek_file(format_context, chosen_stream, 0, seek_point_tb, seek_point_tb, 0) < 0, -1);
