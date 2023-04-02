@@ -14,9 +14,10 @@ def pick_batch(set_i, batch_size):
 	chosen_set = sets[set_i]
 	return chosen_set[np.random.choice(len(chosen_set), [batch_size])]
 
-arsd.init(pick_batch, 100)
+arsd.init(pick_batch, 100, 2)
 
 data = arsd.BLOCKING_draw_clip()
 
-sf.write('samples/clip.flac', data, 44100)
+print(data.shape)
+sf.write('samples/clip.flac', data[10], 44100)
 

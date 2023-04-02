@@ -11,7 +11,7 @@ static int clip_len_samples;
 static int inited = 0;
 static int run_in_samples;
 
-int init(int samplerate_hz_in, int clip_len_ms_in, int run_in_samples_in){
+int init_decoder(int samplerate_hz_in, int clip_len_ms_in, int run_in_samples_in, int64_t* clip_len_samples_out){
 	int clip_length_samplerate_product;
 	//Trap attepmpts to re-init
 	if(inited){
@@ -28,6 +28,7 @@ int init(int samplerate_hz_in, int clip_len_ms_in, int run_in_samples_in){
 		fprintf(stderr, "WARNING: requested clip length does not evenly divide into samples. Continuing.\n");
 	}
 	clip_len_samples = clip_length_samplerate_product / 1000;
+	*clip_len_samples_out = clip_len_samples;
 
 	return 0;
 }
@@ -40,7 +41,7 @@ int init(int samplerate_hz_in, int clip_len_ms_in, int run_in_samples_in){
 }
 
 // TODO: cleanup buffer on unhappy path
-int BLOCKING_draw_clip(char* filename, float** output, int64_t* output_samples){
+int BLOCKING_draw_clip(char* filename, float* output_buffer){
 	AVFormatContext* format_context = NULL;
 
 	int chosen_stream = 0;
@@ -58,6 +59,7 @@ int BLOCKING_draw_clip(char* filename, float** output, int64_t* output_samples){
 	int64_t file_len_samples;
 	int64_t seek_point_samples;
 	int64_t seek_point_tb;
+	int64_t output_samples;
 
 	return_if(avformat_open_input(&format_context, filename, NULL, NULL) != 0, -1);
 	return_if(avformat_find_stream_info(format_context, NULL) != 0, -1);
@@ -90,13 +92,13 @@ int BLOCKING_draw_clip(char* filename, float** output, int64_t* output_samples){
 	
 	return_if(avformat_seek_file(format_context, chosen_stream, 0, seek_point_tb, seek_point_tb, 0) < 0, -1);
 
-	*output_samples = 0;
-	float* output_buffer = malloc(file_len_samples * sizeof(float));
+	output_samples = 0;
+	// float* output_buffer = malloc(file_len_samples * sizeof(float));
 
 	// fprintf(stderr, "clip_len_samples %i output_samples %li\n", clip_len_samples, (*output_samples));
 
 	// The fun bit
-	while ((*output_samples) < clip_len_samples) {
+	while ((output_samples) < clip_len_samples) {
 		if(av_read_frame(format_context, packet) != 0){
 			break;
 		}
@@ -107,10 +109,9 @@ int BLOCKING_draw_clip(char* filename, float** output, int64_t* output_samples){
 			continue;
 		}
 
-
 		avcodec_send_packet(decoder_context, packet);
 
-		while(avcodec_receive_frame(decoder_context, frame) == 0 && (*output_samples) < clip_len_samples){
+		while(avcodec_receive_frame(decoder_context, frame) == 0 && output_samples < clip_len_samples){
 			int64_t pts_samples;
 			int64_t read_start_samples;
 			int64_t read_end_samples;
@@ -129,19 +130,19 @@ int BLOCKING_draw_clip(char* filename, float** output, int64_t* output_samples){
 
 			// fprintf(stderr, "read_start_samples %li ", read_start_samples);
 
-			read_end_samples = clip_len_samples - (*output_samples);
+			read_end_samples = clip_len_samples - output_samples;
 			read_end_samples = read_end_samples > frame->nb_samples ? frame->nb_samples : read_end_samples;
 			// fprintf(stderr, "read_end_samples %li ", read_end_samples);
 
 			// fprintf(stderr, "count %li\n", (read_end_samples - read_start_samples));
 
 			memcpy(
-				output_buffer + (*output_samples),
+				output_buffer + output_samples,
 				((float*)frame->data[0]) + read_start_samples, // TODO: average all channels
 				(read_end_samples - read_start_samples) * sizeof(float)
 			);
 
-			(*output_samples) += read_end_samples - read_start_samples;
+			output_samples += read_end_samples - read_start_samples;
 
 			// fprintf(stderr, "output_samples %li\n", (*output_samples));
 		}
@@ -154,7 +155,7 @@ int BLOCKING_draw_clip(char* filename, float** output, int64_t* output_samples){
 	avformat_close_input(&format_context);
 	avcodec_free_context(&decoder_context);
 
-	(*output) = output_buffer;
+	// (*output) = output_buffer;
 
 	return 0;
 }

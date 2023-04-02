@@ -28,10 +28,10 @@ static int get_function_argument(PyObject *object, void *address){
 	return 1;
 }
 
-
 static PyFunctionObject* batch_picker = NULL;
 static int inited; // TODO
 static int batch_size;
+static int64_t clip_len_samples;
 
 static int pick_batch(int set_i, char** dest){
 	if(!batch_picker)
@@ -43,7 +43,6 @@ static int pick_batch(int set_i, char** dest){
 	PyObject* filenames = PyObject_CallObject((PyObject*)batch_picker, args);
 	if(!filenames)
 		return -1;
-
 
 	if(PyArray_Check(filenames)){
 		filenames = PyArray_ToList(filenames);
@@ -80,36 +79,46 @@ static int pick_batch(int set_i, char** dest){
 	}
 
 	PyErr_SetString(PyExc_ValueError, "pick_batch should return a list of filenames");
-	return 1;
+	return -1;
 }
 
 static PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
-	
 	int samplerate_hz=44100;
 	int clip_len_ms=750;
-
 	int run_in_samples=2000;
 
+	int set_count = 0;
+	int backlog = 5;
+
+	if(inited){
+		PyErr_SetString(PyExc_RuntimeError, "AlReAdY iNiTeD");
+		PyErr_Occurred();
+	}
+	
 	static char* keywords[] = {
 		"pick_batch",
 		"batch_size",
+		"set_count",
 		"samplerate_hz",
 		"clip_len_ms",
 		"run_in_samples",
+		"backlog",
 		NULL
 	};
 
 	if(!PyArg_ParseTupleAndKeywords(
 		args,
 		kwargs,
-		"O&i|iiii",
+		"O&ii|iiiii",
 		keywords,
 		get_function_argument, &batch_picker,
 		&batch_size,
+		&set_count,
 		&samplerate_hz,
 		&clip_len_ms,
-		&run_in_samples)
-	){
+		&run_in_samples,
+		&backlog
+	)){
 		return NULL;
 	}
 
@@ -117,9 +126,11 @@ static PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		PyErr_SetString(PyExc_RuntimeError, "max_batch_size exceeded");
 		PyErr_Occurred();
 	}
-	//TODO: integrate grab and validate max batch size
 
-	if(init(samplerate_hz, clip_len_ms, run_in_samples) != 0){
+	if(
+		(init_decoder(samplerate_hz, clip_len_ms, run_in_samples, &clip_len_samples) != 0) ||
+		(init_scheduler(set_count, batch_size, backlog) != 0)
+	){
 		PyErr_SetString(PyExc_RuntimeError, "arsd init failed");
 		PyErr_Occurred();
 	}
@@ -127,35 +138,27 @@ static PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 	Py_RETURN_NONE;
 }
 
-
-
 static PyObject* py_arsd_draw(PyObject *self, PyObject *args){
-	float* output;
-	int64_t output_size;
+	float* output = (float*)malloc(batch_size * clip_len_samples * sizeof(float));
 
-
-	char batch[max_batch_size][max_file_len];
-	char* batch_ptrs[max_batch_size]; //TODO: got to be a better way to do this
-	for(int i = 0; i < max_batch_size; i++) batch_ptrs[i] = batch[i];
-	pick_batch(0, batch_ptrs);
-
+	char batch_filenames[max_batch_size][max_file_len];
+	char* batch_filename_ptrs[max_batch_size]; //TODO: got to be a better way to do this
+	for(int i = 0; i < max_batch_size; i++) batch_filename_ptrs[i] = batch_filenames[i];
+	pick_batch(0, batch_filename_ptrs);
 	
 	timer(for(int i = 0; i < batch_size; i++){
-		fprintf(stderr, "file:%s\n", batch[i]);
+		fprintf(stderr, "file:%s\n", batch_filenames[i]);
 
-		if(BLOCKING_draw_clip(batch[0], &output, &output_size) != 0){
+		if(BLOCKING_draw_clip(batch_filenames[i], output + (clip_len_samples * i)) != 0){
 			PyErr_SetString(PyExc_RuntimeError, "Could not draw clip");
 			PyErr_Occurred();
 		}
 
 	}, draw_clips);
-
-
 	
+	npy_intp dims[2] = {batch_size, clip_len_samples};
 
-	npy_intp dims[1] = {output_size};
-
-	PyObject* arr = PyArray_SimpleNewFromData(1, dims, NPY_FLOAT32, output);
+	PyObject* arr = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT32, output);
 	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA); // TODO: there has been some debate over wheter this is a correct dellocator
 
 	return arr;
