@@ -3,40 +3,34 @@
 #include <stdlib.h>
 #include <time.h>
 
-
 #include "arsd.h"
 
-// static volatile char current_files[max_batch_size][max_file_len];
-// static volatile float* current_decodes[max_batch_size];
-// static volatile int current_set;
+// PyObject* py_arsd_draw(PyObject *self, PyObject *args){
+// 	float* output = (float*)malloc(batch_size * clip_len_samples * sizeof(float));
 
-// int schedule(){
-// 	struct timespec sleep_interval, rem;
-// 	sleep_interval.tv_sec = 0;
-// 	sleep_interval.tv_nsec = 100000;
+// 	char batch_filenames[max_batch_size][max_file_len];
+// 	char* batch_filename_ptrs[max_batch_size]; //TODO: got to be a better way to do this
+// 	for(int i = 0; i < max_batch_size; i++) batch_filename_ptrs[i] = batch_filenames[i];
+// 	pick_batch(0, batch_filename_ptrs);
+	
+// 	timer(for(int i = 0; i < batch_size; i++){
+// 		fprintf(stderr, "file:%s\n", batch_filenames[i]);
 
-// 	while(1){
-// 		fprintf(stderr, "SCHEDULE\n");
-		
-// 		if(nanosleep(&sleep_interval, &rem) != 0){
-// 			exit(0);
+// 		if(BLOCKING_draw_clip(batch_filenames[i], output + (clip_len_samples * i)) != 0){
+// 			PyErr_SetString(PyExc_RuntimeError, "Could not draw clip");
+// 			PyErr_Occurred();
 // 		}
-// 	}
-// 	return 0;
-// }
-// int worker(void* arg){
-// 	struct timespec sleep_interval, rem;
-// 	sleep_interval.tv_sec = 0;
-// 	sleep_interval.tv_nsec = 100000;
 
-// 	while(1){
-// 		fprintf(stderr, "WORKER\n");
-		
-// 		if(nanosleep(&sleep_interval, &rem) != 0){
-// 			exit(0);
-// 		}
-// 	}
+// 	}, draw_clips);
+	
+// 	npy_intp dims[2] = {batch_size, clip_len_samples};
+
+// 	PyObject* arr = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT32, output);
+// 	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA); // TODO: there has been some debate over wheter this is a correct dellocator
+
+// 	return arr;
 // }
+
 
 
 

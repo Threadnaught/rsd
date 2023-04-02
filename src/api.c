@@ -18,7 +18,7 @@
 	fprintf(stderr, "%s took %li us\n", #short_name, diff); \
 }
 
-static int get_function_argument(PyObject *object, void *address){
+int get_function_argument(PyObject *object, void *address){
 	if(!PyFunction_Check(object)){
 		PyErr_SetString(PyExc_ValueError, "File picker must be a function");
 		return 0;
@@ -28,12 +28,12 @@ static int get_function_argument(PyObject *object, void *address){
 	return 1;
 }
 
-static PyFunctionObject* batch_picker = NULL;
-static int inited; // TODO
-static int batch_size;
-static int64_t clip_len_samples;
+PyFunctionObject* batch_picker = NULL;
+int inited; // TODO
+int batch_size;
+int64_t clip_len_samples;
 
-static int pick_batch(int set_i, char** dest){
+int pick_batch(int set_i, char** dest){
 	if(!batch_picker)
 		return -1;
 	PyObject* args = PyTuple_New(2);
@@ -82,7 +82,7 @@ static int pick_batch(int set_i, char** dest){
 	return -1;
 }
 
-static PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
+PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 	int samplerate_hz=44100;
 	int clip_len_ms=750;
 	int run_in_samples=2000;
@@ -95,7 +95,7 @@ static PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		PyErr_Occurred();
 	}
 	
-	static char* keywords[] = {
+	char* keywords[] = {
 		"pick_batch",
 		"batch_size",
 		"set_count",
@@ -138,7 +138,7 @@ static PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 	Py_RETURN_NONE;
 }
 
-static PyObject* py_arsd_draw(PyObject *self, PyObject *args){
+PyObject* py_arsd_draw(PyObject *self, PyObject *args){
 	float* output = (float*)malloc(batch_size * clip_len_samples * sizeof(float));
 
 	char batch_filenames[max_batch_size][max_file_len];
@@ -164,12 +164,12 @@ static PyObject* py_arsd_draw(PyObject *self, PyObject *args){
 	return arr;
 }
 
-static PyMethodDef arsd_methods[] = {
+PyMethodDef arsd_methods[] = {
 	{"init",				py_arsd_init,	METH_VARARGS | METH_KEYWORDS,	""},
 	{"BLOCKING_draw_clip",	py_arsd_draw,	METH_NOARGS, 					""},
 	{NULL,						NULL,		0,	NULL}
 };
-static PyModuleDef arsd_definition ={
+PyModuleDef arsd_definition ={
 	PyModuleDef_HEAD_INIT,
 	"arsd",
 	"Audio Repetitive Sampling Decoder",
