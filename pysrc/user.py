@@ -16,7 +16,7 @@ def pick_batch(set_i, batch_size):
 
 arsd.init(pick_batch, 100, 2)
 
-data = arsd.BLOCKING_draw_clip()
+data = arsd.BLOCKING_draw_batch(0)
 
 print(data.shape)
 sf.write('samples/clip.flac', data[10], 44100)

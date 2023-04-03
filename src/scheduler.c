@@ -10,13 +10,13 @@ static int set_count;
 static int batch_size;
 static int backlog;
 
-int BLOCKING_draw_batch(float* output){
+int BLOCKING_draw_batch(int set_i, float* output){
 	char batch_filenames[max_batch_size][max_file_len];
 
 	char* batch_filename_ptrs[max_batch_size]; //TODO: got to be a better way to do this
 	for(int i = 0; i < max_batch_size; i++) batch_filename_ptrs[i] = batch_filenames[i];
 	
-	pick_batch(0, batch_filename_ptrs);
+	pick_batch(set_i, batch_filename_ptrs);
 
 	for(int i = 0; i < batch_size; i++){
 		// fprintf(stderr, "file:%s\n", batch_filenames[i]);

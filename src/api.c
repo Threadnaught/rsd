@@ -92,7 +92,7 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 
 	if(inited){
 		PyErr_SetString(PyExc_RuntimeError, "AlReAdY iNiTeD");
-		PyErr_Occurred();
+		Py_RETURN_NONE;
 	}
 	
 	char* keywords[] = {
@@ -126,7 +126,7 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 
 	if(batch_size >= max_batch_size){
 		PyErr_SetString(PyExc_RuntimeError, "max_batch_size exceeded");
-		PyErr_Occurred();
+		Py_RETURN_NONE;
 	}
 
 	if(
@@ -134,20 +134,34 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		(init_scheduler(clip_len_samples, set_count, batch_size, backlog) != 0)
 	){
 		PyErr_SetString(PyExc_RuntimeError, "arsd init failed");
-		PyErr_Occurred();
+		Py_RETURN_NONE;
 	}
 
 	Py_RETURN_NONE;
 }
 
 
-PyObject* py_arsd_draw(PyObject *self, PyObject *args){
+PyObject* py_BLOCKING_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
+	int set_i;
 	float* output = (float*)malloc(batch_size * clip_len_samples * sizeof(float));
+	char* keywords[] = {
+		"set_i",
+		NULL
+	};
 
+	if(!PyArg_ParseTupleAndKeywords(
+		args,
+		kwargs,
+		"i",
+		keywords,
+		&set_i)
+	){
+		return NULL;
+	}
 
-	if(BLOCKING_draw_batch(output) != 0){
+	if(BLOCKING_draw_batch(set_i, output) != 0){
 		PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
-		PyErr_Occurred();
+		Py_RETURN_NONE;
 	}
 	
 	npy_intp dims[2] = {batch_size, clip_len_samples};
@@ -159,9 +173,9 @@ PyObject* py_arsd_draw(PyObject *self, PyObject *args){
 }
 
 PyMethodDef arsd_methods[] = {
-	{"init",				py_arsd_init,	METH_VARARGS | METH_KEYWORDS,	""},
-	{"BLOCKING_draw_clip",	py_arsd_draw,	METH_NOARGS, 					""},
-	{NULL,						NULL,		0,	NULL}
+	{"init",				(PyCFunction*)py_arsd_init,				METH_VARARGS | METH_KEYWORDS,	""},
+	{"BLOCKING_draw_batch",	(PyCFunction*)py_BLOCKING_draw_batch,	METH_VARARGS | METH_KEYWORDS,	""},
+	{NULL,					NULL,									0,								NULL}
 };
 PyModuleDef arsd_definition ={
 	PyModuleDef_HEAD_INIT,
