@@ -5,35 +5,34 @@
 
 #include "arsd.h"
 
-// PyObject* py_arsd_draw(PyObject *self, PyObject *args){
-// 	float* output = (float*)malloc(batch_size * clip_len_samples * sizeof(float));
+static int clip_len_samples;
+static int set_count;
+static int batch_size;
+static int backlog;
 
-// 	char batch_filenames[max_batch_size][max_file_len];
-// 	char* batch_filename_ptrs[max_batch_size]; //TODO: got to be a better way to do this
-// 	for(int i = 0; i < max_batch_size; i++) batch_filename_ptrs[i] = batch_filenames[i];
-// 	pick_batch(0, batch_filename_ptrs);
+int BLOCKING_draw_batch(float* output){
+	char batch_filenames[max_batch_size][max_file_len];
+
+	char* batch_filename_ptrs[max_batch_size]; //TODO: got to be a better way to do this
+	for(int i = 0; i < max_batch_size; i++) batch_filename_ptrs[i] = batch_filenames[i];
 	
-// 	timer(for(int i = 0; i < batch_size; i++){
-// 		fprintf(stderr, "file:%s\n", batch_filenames[i]);
+	pick_batch(0, batch_filename_ptrs);
 
-// 		if(BLOCKING_draw_clip(batch_filenames[i], output + (clip_len_samples * i)) != 0){
-// 			PyErr_SetString(PyExc_RuntimeError, "Could not draw clip");
-// 			PyErr_Occurred();
-// 		}
+	for(int i = 0; i < batch_size; i++){
+		// fprintf(stderr, "file:%s\n", batch_filenames[i]);
 
-// 	}, draw_clips);
-	
-// 	npy_intp dims[2] = {batch_size, clip_len_samples};
+		if(BLOCKING_draw_clip(batch_filenames[i], output + (clip_len_samples * i)) != 0){
+			return -1;
+		}
+	}
+	return 0;
+}
 
-// 	PyObject* arr = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT32, output);
-// 	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA); // TODO: there has been some debate over wheter this is a correct dellocator
+int init_scheduler(int clip_len_samples_in, int set_count_in, int batch_size_in, int backlog_in){
+	clip_len_samples = clip_len_samples_in;
+	set_count = set_count_in;
+	batch_size = batch_size_in;
+	backlog = backlog_in;
 
-// 	return arr;
-// }
-
-
-
-
-int init_scheduler(int set_count, int batch_size, int backlog){
 	return 0;
 }

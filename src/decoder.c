@@ -6,18 +6,12 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
-int samplerate_hz;
-int clip_len_samples;
-int inited = 0;
-int run_in_samples;
+static int samplerate_hz;
+static int clip_len_samples;
+static int run_in_samples;
 
 int init_decoder(int samplerate_hz_in, int clip_len_ms_in, int run_in_samples_in, int64_t* clip_len_samples_out){
 	int clip_length_samplerate_product;
-	//Trap attepmpts to re-init
-	if(inited){
-		return -1;
-	}
-	inited = 1;
 	//Set trivial variables
 	samplerate_hz = samplerate_hz_in;
 	run_in_samples = run_in_samples_in;
