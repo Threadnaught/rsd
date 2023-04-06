@@ -175,6 +175,6 @@ int init_scheduler(arsd_config_t* config_in){
 	}
 
 	pthread_t threads[max_threads];
-	for(int i = 0; i < max_threads; i++) pthread_create(threads+i, NULL, worker_thread, NULL);
+	for(int i = 0; i < config->thread_count; i++) pthread_create(threads+i, NULL, worker_thread, NULL);
 	return 0;
 }

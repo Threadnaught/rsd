@@ -1,10 +1,10 @@
 #include <inttypes.h>
 
 #define max_file_len 100
-#define max_batch_size 500
+#define max_batch_size 1000
 #define max_sets 5
-#define max_backlog 10
-#define max_threads 5 //TODO: configurable
+#define max_backlog 20
+#define max_threads 10
 
 // TODO: make all integer types (u)intxx_t
 
@@ -17,6 +17,7 @@ struct arsd_config{
 	int32_t batch_size;
 	int32_t set_count;
 	int32_t backlog_depth;
+	int32_t thread_count;
 };
 
 #define arsd_config_t struct arsd_config

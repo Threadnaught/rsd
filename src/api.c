@@ -18,6 +18,8 @@
 	fprintf(stderr, "%s took %li us\n", #short_name, diff); \
 }
 
+// TODO: block function calls when not inited
+
 PyFunctionObject* batch_picker = NULL;
 int inited; // TODO
 static arsd_config_t config;
@@ -82,15 +84,44 @@ int pick_batch(int set_i, char** dest){
 	return -1;
 }
 
-PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
-	config.samplerate_hz = 44100;
-	config.clip_len_ms = 750;
-	config.clip_len_samples = -1; //Autofilled by init_decoder
-	config.run_in_samples= 2000;
+arsd_config_t defaults(){
+	arsd_config_t ret;
 
-	config.batch_size = -1;
-	config.set_count = -1;
-	config.backlog_depth = 5;
+	ret.samplerate_hz = 44100;
+	ret.clip_len_ms = 750;
+	ret.clip_len_samples = -1; //Autofilled by init_decoder
+	ret.run_in_samples= 2000;
+
+	ret.batch_size = -1;
+	ret.set_count = -1;
+	ret.backlog_depth = 5;
+	ret.thread_count = 5;
+	
+	return ret;
+}
+
+int validate_config(arsd_config_t cfg){
+	if(cfg.batch_size >= max_batch_size){
+		PyErr_SetString(PyExc_RuntimeError, "max_batch_size exceeded");
+		return 0;
+	}
+	if(cfg.set_count > max_sets){
+		PyErr_SetString(PyExc_RuntimeError, "max_sets exceeded");
+		return 0;
+	}
+	if(cfg.backlog_depth > max_backlog){
+		PyErr_SetString(PyExc_RuntimeError, "max_backlog exceeded");
+		return 0;
+	}
+	if(cfg.thread_count > max_threads){
+		PyErr_SetString(PyExc_RuntimeError, "max_threads exceeded");
+		return 0;
+	}
+	return 1;
+}
+
+PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
+	config = defaults();
 
 	if(inited){
 		PyErr_SetString(PyExc_RuntimeError, "AlReAdY iNiTeD");
@@ -106,6 +137,7 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		"clip_len_ms",
 		"run_in_samples",
 		"backlog",
+		"thread_count",
 		NULL
 	};
 
@@ -120,13 +152,13 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		&config.samplerate_hz,
 		&config.clip_len_ms,
 		&config.run_in_samples,
-		&config.backlog_depth
+		&config.backlog_depth,
+		&config.thread_count
 	)){
 		return NULL;
 	}
 
-	if(config.batch_size >= max_batch_size){
-		PyErr_SetString(PyExc_RuntimeError, "max_batch_size exceeded");
+	if(!validate_config(config)){
 		Py_RETURN_NONE;
 	}
 
