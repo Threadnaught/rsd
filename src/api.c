@@ -83,12 +83,6 @@ int pick_batch(int set_i, char** dest){
 }
 
 PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
-	// int samplerate_hz=44100;
-	// int clip_len_ms=750;
-	// int run_in_samples=2000;
-
-	// int set_count = 0;
-	// int backlog = 5;
 	config.samplerate_hz = 44100;
 	config.clip_len_ms = 750;
 	config.clip_len_samples = -1; //Autofilled by init_decoder
@@ -96,13 +90,14 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 
 	config.batch_size = -1;
 	config.set_count = -1;
-	config.backlog = -1;
+	config.backlog_depth = 5;
 
 	if(inited){
 		PyErr_SetString(PyExc_RuntimeError, "AlReAdY iNiTeD");
 		Py_RETURN_NONE;
 	}
 	
+	// TODO: assert each of these under max
 	char* keywords[] = {
 		"pick_batch",
 		"batch_size",
@@ -113,8 +108,6 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		"backlog",
 		NULL
 	};
-
-	// TODO: move all this init config into a struct
 
 	if(!PyArg_ParseTupleAndKeywords(
 		args,
@@ -127,7 +120,7 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		&config.samplerate_hz,
 		&config.clip_len_ms,
 		&config.run_in_samples,
-		&config.backlog
+		&config.backlog_depth
 	)){
 		return NULL;
 	}
@@ -180,9 +173,41 @@ PyObject* py_BLOCKING_draw_batch(PyObject *self, PyObject *args, PyObject *kwarg
 	return arr;
 }
 
+PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
+	int set_i;
+	float* output = NULL;
+	char* keywords[] = {
+		"set_i",
+		NULL
+	};
+
+	if(!PyArg_ParseTupleAndKeywords(
+		args,
+		kwargs,
+		"i",
+		keywords,
+		&set_i)
+	){
+		return NULL;
+	}
+
+	if(NONBLOCKING_draw_batch(set_i, &output) != 0 || output == NULL){
+		PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
+		Py_RETURN_NONE;
+	}
+	
+	npy_intp dims[2] = {config.batch_size, config.clip_len_samples};
+
+	PyObject* arr = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT32, output);
+	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA); // TODO: there has been some debate over wheter this is a correct dellocator
+
+	return arr;
+}
+
 PyMethodDef arsd_methods[] = {
 	{"init",				(PyCFunction*)py_arsd_init,				METH_VARARGS | METH_KEYWORDS,	""},
 	{"BLOCKING_draw_batch",	(PyCFunction*)py_BLOCKING_draw_batch,	METH_VARARGS | METH_KEYWORDS,	""},
+	{"draw_batch",			(PyCFunction*)py_draw_batch,			METH_VARARGS | METH_KEYWORDS,	""},
 	{NULL,					NULL,									0,								NULL}
 };
 PyModuleDef arsd_definition ={

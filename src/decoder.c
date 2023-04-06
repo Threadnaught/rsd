@@ -6,6 +6,13 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
+#define return_if(statement, ret) {\
+	if(statement) {\
+		fprintf(stderr, "return_if assertion failed:%s\n", #statement);\
+		return ret;\
+	}\
+}
+
 static arsd_config_t* config;
 
 int init_decoder(arsd_config_t* config_in){
@@ -24,13 +31,6 @@ int init_decoder(arsd_config_t* config_in){
 	config->clip_len_samples = clip_length_samplerate_product / 1000;
 
 	return 0;
-}
-
-#define return_if(statement, ret) {\
-	if(statement) {\
-		fprintf(stderr, "return_if assertion failed:%s\n", #statement);\
-		return ret;\
-	}\
 }
 
 // TODO: cleanup buffer on unhappy path
@@ -53,6 +53,8 @@ int BLOCKING_draw_clip(char* filename, float* output_buffer){
 	int64_t seek_point_samples;
 	int64_t seek_point_tb;
 	int64_t output_samples;
+
+	// fprintf(stderr, "Opening %s\n", filename);
 
 	return_if(avformat_open_input(&format_context, filename, NULL, NULL) != 0, -1);
 	return_if(avformat_find_stream_info(format_context, NULL) != 0, -1);
