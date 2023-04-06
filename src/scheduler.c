@@ -5,10 +5,7 @@
 
 #include "arsd.h"
 
-static int clip_len_samples;
-static int set_count;
-static int batch_size;
-static int backlog;
+static arsd_config_t* config;
 
 int BLOCKING_draw_batch(int set_i, float* output){
 	char batch_filenames[max_batch_size][max_file_len];
@@ -21,21 +18,17 @@ int BLOCKING_draw_batch(int set_i, float* output){
 		return -1;
 	
 
-	for(int i = 0; i < batch_size; i++){
+	for(int i = 0; i < config->batch_size; i++){
 		// fprintf(stderr, "file:%s\n", batch_filenames[i]);
 
-		if(BLOCKING_draw_clip(batch_filenames[i], output + (clip_len_samples * i)) != 0){
+		if(BLOCKING_draw_clip(batch_filenames[i], output + (config->clip_len_samples * i)) != 0){
 			return -1;
 		}
 	}
 	return 0;
 }
 
-int init_scheduler(int clip_len_samples_in, int set_count_in, int batch_size_in, int backlog_in){
-	clip_len_samples = clip_len_samples_in;
-	set_count = set_count_in;
-	batch_size = batch_size_in;
-	backlog = backlog_in;
-
+int init_scheduler(arsd_config_t* config_in){
+	config = config_in;
 	return 0;
 }

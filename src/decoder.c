@@ -6,23 +6,22 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
-static int samplerate_hz;
-static int clip_len_samples;
-static int run_in_samples;
+static arsd_config_t* config;
 
-int init_decoder(int samplerate_hz_in, int clip_len_ms_in, int run_in_samples_in, int64_t* clip_len_samples_out){
+int init_decoder(arsd_config_t* config_in){
+	config = config_in;
+
+	av_log_set_level(AV_LOG_ERROR);
+
 	int clip_length_samplerate_product;
 	//Set trivial variables
-	samplerate_hz = samplerate_hz_in;
-	run_in_samples = run_in_samples_in;
 	
 	//For this case, I think we should warn and keep moving
-	clip_length_samplerate_product = samplerate_hz_in * clip_len_ms_in;
+	clip_length_samplerate_product = config->samplerate_hz * config->clip_len_ms;
 	if((clip_length_samplerate_product % 1000) != 0){
 		fprintf(stderr, "WARNING: requested clip length does not evenly divide into samples. Continuing.\n");
 	}
-	clip_len_samples = clip_length_samplerate_product / 1000;
-	*clip_len_samples_out = clip_len_samples;
+	config->clip_len_samples = clip_length_samplerate_product / 1000;
 
 	return 0;
 }
@@ -70,7 +69,7 @@ int BLOCKING_draw_clip(char* filename, float* output_buffer){
 
 	//Finding the seek point
 	timebase_s = format_context->streams[chosen_stream]->time_base;
-	tb_per_sample = timebase_s.den / (timebase_s.num * samplerate_hz);
+	tb_per_sample = timebase_s.den / (timebase_s.num * config->samplerate_hz);
 
 	file_len_tb = format_context->streams[chosen_stream]->duration;
 	return_if((file_len_tb % tb_per_sample) != 0, -1);
@@ -78,10 +77,10 @@ int BLOCKING_draw_clip(char* filename, float* output_buffer){
 
 	seek_point_samples =
 		((((long)rand()) << 32) | ((long)rand()))
-		% (long)(file_len_samples - clip_len_samples);
+		% (long)(file_len_samples - config->clip_len_samples);
 
 	// Due to MP3 being weird, we need to start decoding ~2000 samples before we start to read
-	seek_point_tb = (seek_point_samples - run_in_samples) * tb_per_sample;
+	seek_point_tb = (seek_point_samples - config->run_in_samples) * tb_per_sample;
 	seek_point_tb = seek_point_tb < 0 ? 0 : seek_point_tb;
 	
 	return_if(avformat_seek_file(format_context, chosen_stream, 0, seek_point_tb, seek_point_tb, 0) < 0, -1);
@@ -92,7 +91,7 @@ int BLOCKING_draw_clip(char* filename, float* output_buffer){
 	// fprintf(stderr, "clip_len_samples %i output_samples %li\n", clip_len_samples, (*output_samples));
 
 	// The fun bit
-	while ((output_samples) < clip_len_samples) {
+	while ((output_samples) < config->clip_len_samples) {
 		if(av_read_frame(format_context, packet) != 0){
 			break;
 		}
@@ -105,13 +104,13 @@ int BLOCKING_draw_clip(char* filename, float* output_buffer){
 
 		avcodec_send_packet(decoder_context, packet);
 
-		while(avcodec_receive_frame(decoder_context, frame) == 0 && output_samples < clip_len_samples){
+		while(avcodec_receive_frame(decoder_context, frame) == 0 && output_samples < config->clip_len_samples){
 			int64_t pts_samples;
 			int64_t read_start_samples;
 			int64_t read_end_samples;
 			
 			// fprintf(stderr, "samplerate:%i\n", frame->sample_rate);
-			return_if(frame->sample_rate != samplerate_hz, -1);
+			return_if(frame->sample_rate != config->samplerate_hz, -1);
 			return_if(frame->format != AV_SAMPLE_FMT_FLTP, -1); // Assert that we are dealing in 4-byte floats
 
 			//pts_samples is the presentation timestamp in terms of samples
@@ -125,15 +124,18 @@ int BLOCKING_draw_clip(char* filename, float* output_buffer){
 
 			// fprintf(stderr, "read_start_samples %li ", read_start_samples);
 
-			read_end_samples = clip_len_samples - output_samples;
+			read_end_samples = config->clip_len_samples - output_samples;
 			read_end_samples = read_end_samples > frame->nb_samples ? frame->nb_samples : read_end_samples;
 			// fprintf(stderr, "read_end_samples %li ", read_end_samples);
 
 			// fprintf(stderr, "count %li\n", (read_end_samples - read_start_samples));
 
+			// TODO: ASSERT SINGLE CHANNEL or average all channels
+			// TODO: alter these error messages to recommend normalization
+			
 			memcpy(
 				output_buffer + output_samples,
-				((float*)frame->data[0]) + read_start_samples, // TODO: average all channels
+				((float*)frame->data[0]) + read_start_samples, 
 				(read_end_samples - read_start_samples) * sizeof(float)
 			);
 

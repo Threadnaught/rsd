@@ -18,6 +18,10 @@
 	fprintf(stderr, "%s took %li us\n", #short_name, diff); \
 }
 
+PyFunctionObject* batch_picker = NULL;
+int inited; // TODO
+static arsd_config_t config;
+
 int get_function_argument(PyObject *object, void *address){
 	if(!PyFunction_Check(object)){
 		PyErr_SetString(PyExc_ValueError, "File picker must be a function");
@@ -28,17 +32,13 @@ int get_function_argument(PyObject *object, void *address){
 	return 1;
 }
 
-PyFunctionObject* batch_picker = NULL;
-int inited; // TODO
-int batch_size;
-int64_t clip_len_samples;
 
 int pick_batch(int set_i, char** dest){
 	if(!batch_picker)
 		return -1;
 	PyObject* args = PyTuple_New(2);
 	PyTuple_SetItem(args, 0, PyLong_FromLong(set_i));
-	PyTuple_SetItem(args, 1, PyLong_FromLong(batch_size));
+	PyTuple_SetItem(args, 1, PyLong_FromLong(config.batch_size));
 
 	PyObject* filenames = PyObject_CallObject((PyObject*)batch_picker, args);
 	if(PyErr_Occurred() || !filenames)
@@ -50,9 +50,9 @@ int pick_batch(int set_i, char** dest){
 
 	if(PyList_Check(filenames)){
 		int file_count = PyList_Size(filenames);
-		fprintf(stderr, "List size:%i\n", file_count);
+		// fprintf(stderr, "List size:%i\n", file_count);
 
-		if (file_count != batch_size){
+		if (file_count != config.batch_size){
 			PyErr_SetString(PyExc_ValueError, "pick_batch should return batch_size of filenames");
 			return -1;
 		}
@@ -83,12 +83,20 @@ int pick_batch(int set_i, char** dest){
 }
 
 PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
-	int samplerate_hz=44100;
-	int clip_len_ms=750;
-	int run_in_samples=2000;
+	// int samplerate_hz=44100;
+	// int clip_len_ms=750;
+	// int run_in_samples=2000;
 
-	int set_count = 0;
-	int backlog = 5;
+	// int set_count = 0;
+	// int backlog = 5;
+	config.samplerate_hz = 44100;
+	config.clip_len_ms = 750;
+	config.clip_len_samples = -1; //Autofilled by init_decoder
+	config.run_in_samples= 2000;
+
+	config.batch_size = -1;
+	config.set_count = -1;
+	config.backlog = -1;
 
 	if(inited){
 		PyErr_SetString(PyExc_RuntimeError, "AlReAdY iNiTeD");
@@ -114,24 +122,24 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		"O&ii|iiiii",
 		keywords,
 		get_function_argument, &batch_picker,
-		&batch_size,
-		&set_count,
-		&samplerate_hz,
-		&clip_len_ms,
-		&run_in_samples,
-		&backlog
+		&config.batch_size,
+		&config.set_count,
+		&config.samplerate_hz,
+		&config.clip_len_ms,
+		&config.run_in_samples,
+		&config.backlog
 	)){
 		return NULL;
 	}
 
-	if(batch_size >= max_batch_size){
+	if(config.batch_size >= max_batch_size){
 		PyErr_SetString(PyExc_RuntimeError, "max_batch_size exceeded");
 		Py_RETURN_NONE;
 	}
 
 	if(
-		(init_decoder(samplerate_hz, clip_len_ms, run_in_samples, &clip_len_samples) != 0) ||
-		(init_scheduler(clip_len_samples, set_count, batch_size, backlog) != 0)
+		(init_decoder(&config) != 0) ||
+		(init_scheduler(&config) != 0)
 	){
 		PyErr_SetString(PyExc_RuntimeError, "arsd init failed");
 		Py_RETURN_NONE;
@@ -143,7 +151,7 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 
 PyObject* py_BLOCKING_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 	int set_i;
-	float* output = (float*)malloc(batch_size * clip_len_samples * sizeof(float));
+	float* output = (float*)malloc(config.batch_size * config.clip_len_samples * sizeof(float));
 	char* keywords[] = {
 		"set_i",
 		NULL
@@ -164,7 +172,7 @@ PyObject* py_BLOCKING_draw_batch(PyObject *self, PyObject *args, PyObject *kwarg
 		Py_RETURN_NONE;
 	}
 	
-	npy_intp dims[2] = {batch_size, clip_len_samples};
+	npy_intp dims[2] = {config.batch_size, config.clip_len_samples};
 
 	PyObject* arr = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT32, output);
 	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA); // TODO: there has been some debate over wheter this is a correct dellocator

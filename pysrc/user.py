@@ -25,14 +25,15 @@ sets = np.asarray([find('samples/fma_medium', '.*\\.mp3')])
 
 
 def pick_batch(set_i, batch_size):
-	print('picking', set_i, batch_size)
+	# print('picking', set_i, batch_size)
 	chosen_set = sets[set_i]
 	return chosen_set[np.random.choice(len(chosen_set), [batch_size])]
 
 arsd.init(pick_batch, 100, 1)
 
-data = arsd.BLOCKING_draw_batch(0)
+while True:
+	data = arsd.BLOCKING_draw_batch(0)
+	print(data.shape)
 
-print(data.shape)
-sf.write('samples/clip.flac', data[10], 44100)
+	sf.write('samples/clip.flac', data[10], 44100)
 
