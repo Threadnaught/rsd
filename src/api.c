@@ -41,7 +41,7 @@ int pick_batch(int set_i, char** dest){
 	PyTuple_SetItem(args, 1, PyLong_FromLong(batch_size));
 
 	PyObject* filenames = PyObject_CallObject((PyObject*)batch_picker, args);
-	if(!filenames)
+	if(PyErr_Occurred() || !filenames)
 		return -1;
 
 	if(PyArray_Check(filenames)){

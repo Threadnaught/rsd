@@ -16,7 +16,10 @@ int BLOCKING_draw_batch(int set_i, float* output){
 	char* batch_filename_ptrs[max_batch_size]; //TODO: got to be a better way to do this
 	for(int i = 0; i < max_batch_size; i++) batch_filename_ptrs[i] = batch_filenames[i];
 	
-	pick_batch(set_i, batch_filename_ptrs);
+	// TODO: raise this exception to calling code / print it out
+	if(pick_batch(set_i, batch_filename_ptrs) != 0)
+		return -1;
+	
 
 	for(int i = 0; i < batch_size; i++){
 		// fprintf(stderr, "file:%s\n", batch_filenames[i]);

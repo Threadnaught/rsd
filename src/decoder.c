@@ -110,6 +110,7 @@ int BLOCKING_draw_clip(char* filename, float* output_buffer){
 			int64_t read_start_samples;
 			int64_t read_end_samples;
 			
+			// fprintf(stderr, "samplerate:%i\n", frame->sample_rate);
 			return_if(frame->sample_rate != samplerate_hz, -1);
 			return_if(frame->format != AV_SAMPLE_FMT_FLTP, -1); // Assert that we are dealing in 4-byte floats
 
