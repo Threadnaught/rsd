@@ -17,11 +17,14 @@
 	diff = ((end.tv_sec - start.tv_sec) * 1000 * 1000) + ((end.tv_usec - start.tv_usec)); \
 	fprintf(stderr, "%s took %li us\n", #short_name, diff); \
 }
-
-// TODO: block function calls when not inited
+#define raise_if_not_inited() \
+	if(!inited){\
+		PyErr_SetString(PyExc_ValueError, "Call arsd.init() before using arsd"); \
+		return NULL; \
+	}
 
 PyFunctionObject* batch_picker = NULL;
-int inited; // TODO
+int inited;
 static arsd_config_t config;
 
 int get_function_argument(PyObject *object, void *address){
@@ -169,11 +172,14 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		Py_RETURN_NONE;
 	}
 
+	inited = 1;
+
 	Py_RETURN_NONE;
 }
 
 
 PyObject* py_BLOCKING_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
+	raise_if_not_inited();
 	int set_i;
 	float* output = (float*)malloc(config.batch_size * config.clip_len_samples * sizeof(float));
 	char* keywords[] = {
@@ -205,6 +211,7 @@ PyObject* py_BLOCKING_draw_batch(PyObject *self, PyObject *args, PyObject *kwarg
 }
 
 PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
+	raise_if_not_inited();
 	int set_i;
 	float* output = NULL;
 	char* keywords[] = {
