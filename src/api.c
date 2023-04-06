@@ -128,7 +128,6 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		Py_RETURN_NONE;
 	}
 	
-	// TODO: assert each of these under max
 	char* keywords[] = {
 		"pick_batch",
 		"batch_size",
@@ -200,7 +199,7 @@ PyObject* py_BLOCKING_draw_batch(PyObject *self, PyObject *args, PyObject *kwarg
 	npy_intp dims[2] = {config.batch_size, config.clip_len_samples};
 
 	PyObject* arr = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT32, output);
-	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA); // TODO: there has been some debate over wheter this is a correct dellocator
+	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA);
 
 	return arr;
 }
@@ -231,7 +230,7 @@ PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 	npy_intp dims[2] = {config.batch_size, config.clip_len_samples};
 
 	PyObject* arr = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT32, output);
-	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA); // TODO: there has been some debate over wheter this is a correct dellocator
+	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA);
 
 	return arr;
 }

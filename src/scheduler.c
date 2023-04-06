@@ -61,10 +61,9 @@ void sleep_ms(int32_t ms){
 int BLOCKING_draw_batch(int set_i, float* output){
 	char batch_filenames[max_batch_size][max_file_len];
 
-	char* batch_filename_ptrs[max_batch_size]; //TODO: got to be a better way to do this
+	char* batch_filename_ptrs[max_batch_size];
 	for(int i = 0; i < max_batch_size; i++) batch_filename_ptrs[i] = batch_filenames[i];
 	
-	// TODO: raise this exception to calling code / print it out
 	if(pick_batch(set_i, batch_filename_ptrs) != 0)
 		return -1;
 	
@@ -108,6 +107,8 @@ void* worker_thread(void* unused){
 					completed_batches[set][depth] + (config->clip_len_samples * i)
 				) != 0){
 					fprintf(stderr, "Discarding entire batch due to %s decode failure\n", batch_file_names[set][depth][i]);
+					// TODO: link to GH here
+					fprintf(stderr, "See arsd github for details of how to normalize your input files.\n");
 					decode_failed = 1;
 					break;
 				}
@@ -140,7 +141,7 @@ int NONBLOCKING_draw_batch(int set_i, float** output){
 		locking(common_lock, {
 			for(int depth = 0; depth < config->backlog_depth; depth++){
 				if(batch_statuses[set_i][depth] == needs_filenames){
-					char* batch_filename_ptrs[max_batch_size]; //TODO: got to be a better way to do this
+					char* batch_filename_ptrs[max_batch_size];
 					for(int i = 0; i < max_batch_size; i++)
 						batch_filename_ptrs[i] = batch_file_names[set_i][depth][i];
 					while(pick_batch(set_i, batch_filename_ptrs) != 0);

@@ -132,8 +132,7 @@ int BLOCKING_draw_clip(char* filename, float* output_buffer){
 
 			// fprintf(stderr, "count %li\n", (read_end_samples - read_start_samples));
 
-			// TODO: ASSERT SINGLE CHANNEL or average all channels
-			// TODO: alter these error messages to recommend normalization
+			return_if(frame->channels != 1, -1);
 			
 			memcpy(
 				output_buffer + output_samples,
