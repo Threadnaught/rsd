@@ -6,8 +6,6 @@
 #define max_backlog 20
 #define max_threads 10
 
-// TODO: make all integer types (u)intxx_t
-
 struct arsd_config{
 	int32_t samplerate_hz;
 	int32_t clip_len_ms;
@@ -23,13 +21,13 @@ struct arsd_config{
 #define arsd_config_t struct arsd_config
 
 // api:
-int pick_batch(int set_i, char** dest);
+int32_t pick_batch(int32_t set_i, char** dest);
 
 // scheduler:
-int init_scheduler(arsd_config_t* config);
-int BLOCKING_draw_batch(int set_i, float* output);
-int NONBLOCKING_draw_batch(int set_i, float** output);
+int32_t init_scheduler(arsd_config_t* config);
+int32_t BLOCKING_draw_batch(int32_t set_i, float* output);
+int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output);
 
 // decoder:
-int init_decoder(arsd_config_t* config);
-int BLOCKING_draw_clip(char* filename, float* output_buffer);
+int32_t init_decoder(arsd_config_t* config);
+int32_t BLOCKING_draw_clip(char* filename, float* output_buffer);

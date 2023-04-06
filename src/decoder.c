@@ -15,12 +15,12 @@
 
 static arsd_config_t* config;
 
-int init_decoder(arsd_config_t* config_in){
+int32_t init_decoder(arsd_config_t* config_in){
 	config = config_in;
 
 	av_log_set_level(AV_LOG_ERROR);
 
-	int clip_length_samplerate_product;
+	int32_t clip_length_samplerate_product;
 	//Set trivial variables
 	
 	//For this case, I think we should warn and keep moving
@@ -34,10 +34,10 @@ int init_decoder(arsd_config_t* config_in){
 }
 
 // TODO: cleanup buffer on unhappy path
-int BLOCKING_draw_clip(char* filename, float* output_buffer){
+int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 	AVFormatContext* format_context = NULL;
 
-	int chosen_stream = 0;
+	int32_t chosen_stream = 0;
 	
 	const AVCodec* decoder;
 	AVCodecContext* decoder_context;

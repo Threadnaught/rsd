@@ -58,17 +58,17 @@ void sleep_ms(int32_t ms){
 		exit(1);
 }
 
-int BLOCKING_draw_batch(int set_i, float* output){
+int32_t BLOCKING_draw_batch(int32_t set_i, float* output){
 	char batch_filenames[max_batch_size][max_file_len];
 
 	char* batch_filename_ptrs[max_batch_size];
-	for(int i = 0; i < max_batch_size; i++) batch_filename_ptrs[i] = batch_filenames[i];
+	for(int32_t i = 0; i < max_batch_size; i++) batch_filename_ptrs[i] = batch_filenames[i];
 	
 	if(pick_batch(set_i, batch_filename_ptrs) != 0)
 		return -1;
 	
 
-	for(int i = 0; i < config->batch_size; i++){
+	for(int32_t i = 0; i < config->batch_size; i++){
 		// fprintf(stderr, "file:%s\n", batch_filenames[i]);
 
 		if(BLOCKING_draw_clip(batch_filenames[i], output + (config->clip_len_samples * i)) != 0){
@@ -80,10 +80,10 @@ int BLOCKING_draw_batch(int set_i, float* output){
 
 void* worker_thread(void* unused){
 	while(1){
-		int depth = -1;
-		int set = -1;
-		int should_decode = 0;
-		int decode_failed = 0;
+		int32_t depth = -1;
+		int32_t set = -1;
+		int32_t should_decode = 0;
+		int32_t decode_failed = 0;
 		locking(common_lock, {
 			// Prefer one for each set, not all in one set and none in the others
 			for(depth = 0; depth < config->backlog_depth && (!should_decode); depth++){
@@ -100,7 +100,7 @@ void* worker_thread(void* unused){
 		if(should_decode){
 			set -= 1;
 			depth -= 1;
-			for(int i = 0; i < config->batch_size; i++){
+			for(int32_t i = 0; i < config->batch_size; i++){
 				// fprintf(stderr, "Decoding %i %i (%s ...)\n", set, depth, (char*)batch_file_names[set][depth][i]);
 				if(BLOCKING_draw_clip(
 					batch_file_names[set][depth][i],
@@ -132,17 +132,17 @@ void* worker_thread(void* unused){
 	return NULL;
 }
 
-int NONBLOCKING_draw_batch(int set_i, float** output){
+int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output){
 	*output = NULL;
 
 	while(1){
 		// Picking batch is inside this loop, as a file may fail to decode, requring new filenames to be picked
 		// While not exactly likely, this can happen multiple times.
 		locking(common_lock, {
-			for(int depth = 0; depth < config->backlog_depth; depth++){
+			for(int32_t depth = 0; depth < config->backlog_depth; depth++){
 				if(batch_statuses[set_i][depth] == needs_filenames){
 					char* batch_filename_ptrs[max_batch_size];
-					for(int i = 0; i < max_batch_size; i++)
+					for(int32_t i = 0; i < max_batch_size; i++)
 						batch_filename_ptrs[i] = batch_file_names[set_i][depth][i];
 					while(pick_batch(set_i, batch_filename_ptrs) != 0);
 					// fprintf(stderr, "Ready To Decode %i %i (%s ...)\n", set_i, depth, batch_file_names[set_i][depth][0]);
@@ -150,7 +150,7 @@ int NONBLOCKING_draw_batch(int set_i, float** output){
 				}
 			}
 			
-			for(int depth = 0; depth < config->backlog_depth; depth++){
+			for(int32_t depth = 0; depth < config->backlog_depth; depth++){
 				if(batch_statuses[set_i][depth] == decoded){
 					*output = completed_batches[set_i][depth];
 					// fprintf(stderr, "Needs filenames (returning)\n");
@@ -167,15 +167,15 @@ int NONBLOCKING_draw_batch(int set_i, float** output){
 	}
 }
 
-int init_scheduler(arsd_config_t* config_in){
+int32_t init_scheduler(arsd_config_t* config_in){
 	config = config_in;
-	for(int set = 0; set < config->set_count; set++){
-		for(int depth = 0; depth < config->backlog_depth; depth++){
+	for(int32_t set = 0; set < config->set_count; set++){
+		for(int32_t depth = 0; depth < config->backlog_depth; depth++){
 			batch_statuses[set][depth] = needs_filenames;
 		}
 	}
 
 	pthread_t threads[max_threads];
-	for(int i = 0; i < config->thread_count; i++) pthread_create(threads+i, NULL, worker_thread, NULL);
+	for(int32_t i = 0; i < config->thread_count; i++) pthread_create(threads+i, NULL, worker_thread, NULL);
 	return 0;
 }

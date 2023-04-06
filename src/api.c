@@ -24,10 +24,10 @@
 	}
 
 PyFunctionObject* batch_picker = NULL;
-int inited;
+int32_t inited;
 static arsd_config_t config;
 
-int get_function_argument(PyObject *object, void *address){
+int32_t get_function_argument(PyObject *object, void *address){
 	if(!PyFunction_Check(object)){
 		PyErr_SetString(PyExc_ValueError, "File picker must be a function");
 		return 0;
@@ -38,7 +38,7 @@ int get_function_argument(PyObject *object, void *address){
 }
 
 
-int pick_batch(int set_i, char** dest){
+int32_t pick_batch(int32_t set_i, char** dest){
 	if(!batch_picker)
 		return -1;
 	PyObject* args = PyTuple_New(2);
@@ -54,7 +54,7 @@ int pick_batch(int set_i, char** dest){
 	}
 
 	if(PyList_Check(filenames)){
-		int file_count = PyList_Size(filenames);
+		int32_t file_count = PyList_Size(filenames);
 		// fprintf(stderr, "List size:%i\n", file_count);
 
 		if (file_count != config.batch_size){
@@ -62,7 +62,7 @@ int pick_batch(int set_i, char** dest){
 			return -1;
 		}
 
-		for(int i = 0; i < file_count; i++){
+		for(int32_t i = 0; i < file_count; i++){
 			PyObject* current_filename_unchecked = PyList_GetItem(filenames, i);
 			if(!PyUnicode_Check(current_filename_unchecked)){
 				PyErr_SetString(PyExc_ValueError, "pick_batch should return a list of string filenames");
@@ -103,7 +103,7 @@ arsd_config_t defaults(){
 	return ret;
 }
 
-int validate_config(arsd_config_t cfg){
+int32_t validate_config(arsd_config_t cfg){
 	if(cfg.batch_size >= max_batch_size){
 		PyErr_SetString(PyExc_RuntimeError, "max_batch_size exceeded");
 		return 0;
@@ -180,7 +180,7 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 
 PyObject* py_BLOCKING_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 	raise_if_not_inited();
-	int set_i;
+	int32_t set_i;
 	float* output = (float*)malloc(config.batch_size * config.clip_len_samples * sizeof(float));
 	char* keywords[] = {
 		"set_i",
@@ -212,7 +212,7 @@ PyObject* py_BLOCKING_draw_batch(PyObject *self, PyObject *args, PyObject *kwarg
 
 PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 	raise_if_not_inited();
-	int set_i;
+	int32_t set_i;
 	float* output = NULL;
 	char* keywords[] = {
 		"set_i",
