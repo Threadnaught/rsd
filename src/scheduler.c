@@ -108,7 +108,7 @@ void* worker_thread(void* unused){
 				) != 0){
 					fprintf(stderr, "Discarding entire batch due to %s decode failure\n", batch_file_names[set][depth][i]);
 					// TODO: link to GH here
-					fprintf(stderr, "See arsd github for details of how to normalize your input files.\n");
+					fprintf(stderr, "See https://github.com/Threadnaught/arsd#file-normalization for details of how to normalize your input files.\n");
 					decode_failed = 1;
 					break;
 				}
@@ -144,7 +144,11 @@ int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output){
 					char* batch_filename_ptrs[max_batch_size];
 					for(int32_t i = 0; i < max_batch_size; i++)
 						batch_filename_ptrs[i] = batch_file_names[set_i][depth][i];
-					while(pick_batch(set_i, batch_filename_ptrs) != 0);
+					if(pick_batch(set_i, batch_filename_ptrs) != 0){
+						//unlock mutex early
+						pthread_mutex_unlock(&common_lock);
+						return -1;
+					}
 					// fprintf(stderr, "Ready To Decode %i %i (%s ...)\n", set_i, depth, batch_file_names[set_i][depth][0]);
 					batch_statuses[set_i][depth] = ready_to_decode;
 				}

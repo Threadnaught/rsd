@@ -37,7 +37,6 @@ int32_t get_function_argument(PyObject *object, void *address){
 	return 1;
 }
 
-
 int32_t pick_batch(int32_t set_i, char** dest){
 	int32_t rc = -1;
 	PyObject* py_set_i = NULL;
@@ -56,19 +55,23 @@ int32_t pick_batch(int32_t set_i, char** dest){
 	if(!batch_picker)
 		goto cleanup;
 
-	py_set_i = PyLong_FromLong(set_i);
 	py_batch_size = PyLong_FromLong(config.batch_size);
+	py_set_i = PyLong_FromLong(set_i);
 
-	args = PyTuple_New(2);
-	PyTuple_SetItem(args, 0, py_set_i);
-	PyTuple_SetItem(args, 1, py_batch_size);
+	if(config.pass_set_i){
+		args = PyTuple_New(2);
+		PyTuple_SetItem(args, 1, py_set_i);
+	} else {
+		args = PyTuple_New(1);
+	}
+	PyTuple_SetItem(args, 0, py_batch_size);
 	
 	filenames_unchecked = PyObject_CallObject((PyObject*)batch_picker, args);
 	if(PyErr_Occurred() || !filenames_unchecked)
 		goto cleanup;
 
 	if(PyArray_Check(filenames_unchecked)){
-		filenames = PyArray_ToList(filenames_unchecked); //TODO: cleanup this
+		filenames = PyArray_ToList(filenames_unchecked);
 	} else {
 		filenames = filenames_unchecked;
 	}
@@ -127,7 +130,7 @@ arsd_config_t defaults(){
 	ret.run_in_samples= 2000;
 
 	ret.batch_size = -1;
-	ret.set_count = -1;
+	ret.set_count = 1;
 	ret.backlog_depth = 5;
 	ret.thread_count = 5;
 	
@@ -177,7 +180,7 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 	if(!PyArg_ParseTupleAndKeywords(
 		args,
 		kwargs,
-		"O&ii|iiiii",
+		"O&i|iiiiii",
 		keywords,
 		get_function_argument, &batch_picker,
 		&config.batch_size,
@@ -195,6 +198,17 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		Py_RETURN_NONE;
 	}
 
+
+	int64_t batch_picker_arg_count = PyLong_AsLong(PyObject_GetAttrString(PyFunction_GetCode((PyObject*)batch_picker), "co_argcount"));
+	if(batch_picker_arg_count == 1){
+		config.pass_set_i = 0;
+	} else if (batch_picker_arg_count == 2) {
+		config.pass_set_i = 1;
+	} else {
+		PyErr_SetString(PyExc_RuntimeError, "batch picker should have 1 or 2 arguments");
+		Py_RETURN_NONE;
+	}
+
 	if(
 		(init_decoder(&config) != 0) ||
 		(init_scheduler(&config) != 0)
@@ -208,42 +222,9 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 	Py_RETURN_NONE;
 }
 
-
-PyObject* py_BLOCKING_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
-	raise_if_not_inited();
-	int32_t set_i;
-	float* output = (float*)malloc(config.batch_size * config.clip_len_samples * sizeof(float));
-	char* keywords[] = {
-		"set_i",
-		NULL
-	};
-
-	if(!PyArg_ParseTupleAndKeywords(
-		args,
-		kwargs,
-		"i",
-		keywords,
-		&set_i)
-	){
-		return NULL;
-	}
-
-	if(BLOCKING_draw_batch(set_i, output) != 0){
-		PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
-		Py_RETURN_NONE;
-	}
-	
-	npy_intp dims[2] = {config.batch_size, config.clip_len_samples};
-
-	PyObject* arr = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT32, output);
-	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA);
-
-	return arr;
-}
-
 PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 	raise_if_not_inited();
-	int32_t set_i;
+	int32_t set_i = 0;
 	float* output = NULL;
 	char* keywords[] = {
 		"set_i",
@@ -253,15 +234,22 @@ PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 	if(!PyArg_ParseTupleAndKeywords(
 		args,
 		kwargs,
-		"i",
+		"|i",
 		keywords,
 		&set_i)
 	){
 		return NULL;
 	}
 
+	if(set_i >= config.set_count){
+		PyErr_SetString(PyExc_RuntimeError, "set_i must be less than configured set count");
+		Py_RETURN_NONE;
+	}
+
 	if(NONBLOCKING_draw_batch(set_i, &output) != 0 || output == NULL){
-		PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
+		//Set a generic error message if none is present
+		if(!PyErr_Occurred())
+			PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
 		Py_RETURN_NONE;
 	}
 	
@@ -275,7 +263,6 @@ PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 
 PyMethodDef arsd_methods[] = {
 	{"init",				(PyCFunction*)py_arsd_init,				METH_VARARGS | METH_KEYWORDS,	""},
-	{"BLOCKING_draw_batch",	(PyCFunction*)py_BLOCKING_draw_batch,	METH_VARARGS | METH_KEYWORDS,	""},
 	{"draw_batch",			(PyCFunction*)py_draw_batch,			METH_VARARGS | METH_KEYWORDS,	""},
 	{NULL,					NULL,									0,								NULL}
 };

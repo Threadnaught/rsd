@@ -16,6 +16,7 @@ struct arsd_config{
 	int32_t set_count;
 	int32_t backlog_depth;
 	int32_t thread_count;
+	int32_t pass_set_i;
 };
 
 #define arsd_config_t struct arsd_config

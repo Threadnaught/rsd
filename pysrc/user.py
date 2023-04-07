@@ -18,30 +18,28 @@ def find(path, pattern):
 
 	return []
 
-# def list_fullpath(base):
-# 	return np.asarray([os.path.join(base, x) for x in os.listdir(base)])
+all_files = np.asarray(find('samples/fma_medium', '.*\\.mp3'))
 
-# sets = [list_fullpath('samples/many'), list_fullpath('samples/many-2')]
-sets = np.asarray([find('samples/fma_medium', '.*\\.mp3')])
+validation_split = len(all_files) // 16
+validation_shuffler = np.random.default_rng(0) #Make sure we always get the same split
+validation_shuffler.shuffle(all_files)
 
-def pick_batch(set_i, batch_size):
-	# print('picking', set_i, batch_size)
-	chosen_set = sets[0]
+validation_files = np.asarray(all_files[:validation_split])
+train_files = np.asarray(all_files[validation_split:])
 
+def pick_batch(batch_size, set_i):
+	chosen_set = train_files if set_i == 0 else validation_files
 	ret = chosen_set[np.random.choice(len(chosen_set), [batch_size])]
-	# ret[50] = 'samples/000002.mp3'
-	return ret # TODO: this style cast seems to prevent the memory leak
+	return ret
 
-arsd.init(pick_batch, 100, 1)
+arsd.init(pick_batch, 100, 2)
 
 while True:
 	start = datetime.datetime.utcnow()
 	for _ in range(100):
 		data = arsd.draw_batch(0)
+	data = arsd.draw_batch(1)
 	end = datetime.datetime.utcnow()
-
 	
 	print(end, ' shape:', data.shape, 'time per:', end - start)
-
-	# sf.write('samples/clip.flac', data[10], 44100)
 
