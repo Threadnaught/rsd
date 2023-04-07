@@ -1,6 +1,6 @@
 
 build-here: src/* pysrc/setup.py
-	python3 pysrc/setup.py build_ext --inplace && cp arsd/* pysrc/
+	python3 pysrc/setup.py build_ext --inplace && mv ./arsd.cpython* pysrc
 
 install:
 	if ! python3 pysrc/setup.py install --user; then \

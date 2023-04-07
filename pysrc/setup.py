@@ -4,7 +4,7 @@ def configure_package():
 
 	config = Configuration('arsd')
 	config.add_extension(
-		'arsd',
+		'',
 		['src/api.c', 'src/decoder.c', 'src/scheduler.c'],
 		extra_info=get_info('npymath'),
 		libraries=['avcodec', 'avformat', 'avutil']

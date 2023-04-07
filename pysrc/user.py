@@ -18,7 +18,7 @@ def find(path, pattern):
 
 	return []
 
-all_files = np.asarray(find('samples/fma_medium', '.*\\.mp3'))
+all_files = np.asarray(find('/mnt/datasets/fma_medium_normalized', '.*\\.mp3'))
 
 validation_split = len(all_files) // 16
 validation_shuffler = np.random.default_rng(0) #Make sure we always get the same split
