@@ -45,8 +45,6 @@ int32_t pick_batch(int32_t set_i, char** dest){
 	PyObject* args = NULL;
 
 	PyObject* filenames = NULL;
-	// int decref_filenames = 0;
-
 	//Different pointers to the same object
 	PyObject* current_filename_unchecked = NULL;
 	PyUnicodeObject* current_filename = NULL;
@@ -62,7 +60,7 @@ int32_t pick_batch(int32_t set_i, char** dest){
 	args = PyTuple_New(2);
 	PyTuple_SetItem(args, 0, py_set_i);
 	PyTuple_SetItem(args, 1, py_batch_size);
-
+	
 	filenames = PyObject_CallObject((PyObject*)batch_picker, args);
 	if(PyErr_Occurred() || !filenames)
 		goto cleanup;
@@ -108,7 +106,7 @@ int32_t pick_batch(int32_t set_i, char** dest){
 
 	if(args) Py_DECREF(args);
 
-	if(filenames) Py_DECREF(filenames); // TODO: handle non-np usage
+	if(filenames) Py_DECREF(filenames);
 
 	if(current_filename_encoded) Py_DECREF(current_filename_encoded);
 
