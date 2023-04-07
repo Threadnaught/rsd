@@ -4,9 +4,19 @@ Audio Repetitive Sampling Decoder (ARSD) is a wickedly fast MP3 decoding library
 
 ARSD's multithreaded architecture allows the next batches to be CPU decoded in the background while the GPU is busy doing other things. FFMpeg's seek implementation allows for efficient random access of clips from longer audio files.
 
-## File Normalization
+## How do I set it up?
 
-ARSD expects audio files to be uniform in format, sample rate and channel count for maximum decode rate. Use [normalize-inplace.sh](./scripts/normalize-inplace.sh).
+### Install dependencies
+
+If you are on debian/ubuntu, you should be able to run `apt install ffmpeg libavutil-dev libavcodec-dev libavformat-dev libavfilter-dev`.
+
+If you are on other linux or osx, these packages should be available but may have different names.
+
+If you are on windows, may god have mercy on your soul.
+
+### Install arsd
+
+Now you should be able to run `make install`
 
 ## How do I use it?
 
@@ -51,3 +61,7 @@ while True:
 	batch = arsd.draw_batch(0)
 	validation_batch = arsd.draw_batch(1)
 ```
+
+## File Normalization
+
+ARSD expects audio files to be uniform in format, sample rate and channel count for maximum decode rate. Use [normalize-inplace.sh](./scripts/normalize-inplace.sh).
