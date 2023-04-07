@@ -39,13 +39,12 @@ int32_t get_function_argument(PyObject *object, void *address){
 
 
 int32_t pick_batch(int32_t set_i, char** dest){
-	int rc = -1;
+	int32_t rc = -1;
 	PyObject* py_set_i = NULL;
 	PyObject* py_batch_size = NULL;
 	PyObject* args = NULL;
 
 	PyObject* filenames = NULL;
-	int own_filenames = 0;
 
 	//Different pointers to the same object
 	PyObject* current_filename_unchecked = NULL;
@@ -68,7 +67,7 @@ int32_t pick_batch(int32_t set_i, char** dest){
 		goto cleanup;
 
 	if(PyArray_Check(filenames)){
-		filenames = PyArray_ToList(filenames);
+		filenames = PyArray_ToList(filenames); //TODO: cleanup this
 	}
 
 	if(PyList_Check(filenames)){

@@ -29,6 +29,7 @@ def pick_batch(set_i, batch_size):
 	chosen_set = sets[set_i]
 
 	ret = chosen_set[np.random.choice(len(chosen_set), [batch_size])]
+	ret[50] = 'samples/000002.mp3'
 	return ret
 
 arsd.init(pick_batch, 100, 1)

@@ -6,10 +6,10 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
-#define return_if(statement, ret) {\
+#define cleanup_if(statement) {\
 	if(statement) {\
-		fprintf(stderr, "return_if assertion failed:%s\n", #statement);\
-		return ret;\
+		fprintf(stderr, "cleanup_if assertion failed:%s\n", #statement);\
+		goto cleanup;\
 	}\
 }
 
@@ -33,8 +33,9 @@ int32_t init_decoder(arsd_config_t* config_in){
 	return 0;
 }
 
-// TODO: cleanup buffer on unhappy path
 int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
+	int32_t rc = -1;
+
 	AVFormatContext* format_context = NULL;
 
 	int32_t chosen_stream = 0;
@@ -54,27 +55,30 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 	int64_t seek_point_tb;
 	int64_t output_samples;
 
+	int64_t pts_samples;
+	int64_t read_start_samples;
+	int64_t read_end_samples;
+
 	// fprintf(stderr, "Opening %s\n", filename);
 
-	return_if(avformat_open_input(&format_context, filename, NULL, NULL) != 0, -1);
-	return_if(avformat_find_stream_info(format_context, NULL) != 0, -1);
-	return_if(
-		(chosen_stream = av_find_best_stream(format_context, AVMEDIA_TYPE_AUDIO, -1, -1, &decoder, 0)) < 0,
-		-1
+	cleanup_if(avformat_open_input(&format_context, filename, NULL, NULL) != 0);
+	cleanup_if(avformat_find_stream_info(format_context, NULL) != 0);
+	cleanup_if(
+		(chosen_stream = av_find_best_stream(format_context, AVMEDIA_TYPE_AUDIO, -1, -1, &decoder, 0)) < 0
 	);
 
 	// Prepare to decode
-	return_if((decoder_context = avcodec_alloc_context3(decoder)) == NULL, -1);
-	return_if(avcodec_open2(decoder_context, decoder, NULL) != 0, -1);
-	return_if((packet = av_packet_alloc()) == NULL, -1);
-	return_if((frame = av_frame_alloc()) == NULL, -1);
+	cleanup_if((decoder_context = avcodec_alloc_context3(decoder)) == NULL);
+	cleanup_if(avcodec_open2(decoder_context, decoder, NULL) != 0);
+	cleanup_if((packet = av_packet_alloc()) == NULL);
+	cleanup_if((frame = av_frame_alloc()) == NULL);
 
 	//Finding the seek point
 	timebase_s = format_context->streams[chosen_stream]->time_base;
 	tb_per_sample = timebase_s.den / (timebase_s.num * config->samplerate_hz);
 
 	file_len_tb = format_context->streams[chosen_stream]->duration;
-	return_if((file_len_tb % tb_per_sample) != 0, -1);
+	cleanup_if((file_len_tb % tb_per_sample) != 0);
 	file_len_samples = file_len_tb / tb_per_sample;
 
 	seek_point_samples =
@@ -85,12 +89,9 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 	seek_point_tb = (seek_point_samples - config->run_in_samples) * tb_per_sample;
 	seek_point_tb = seek_point_tb < 0 ? 0 : seek_point_tb;
 	
-	return_if(avformat_seek_file(format_context, chosen_stream, 0, seek_point_tb, seek_point_tb, 0) < 0, -1);
+	cleanup_if(avformat_seek_file(format_context, chosen_stream, 0, seek_point_tb, seek_point_tb, 0) < 0);
 
 	output_samples = 0;
-	// float* output_buffer = malloc(file_len_samples * sizeof(float));
-
-	// fprintf(stderr, "clip_len_samples %i output_samples %li\n", clip_len_samples, (*output_samples));
 
 	// The fun bit
 	while ((output_samples) < config->clip_len_samples) {
@@ -107,16 +108,13 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 		avcodec_send_packet(decoder_context, packet);
 
 		while(avcodec_receive_frame(decoder_context, frame) == 0 && output_samples < config->clip_len_samples){
-			int64_t pts_samples;
-			int64_t read_start_samples;
-			int64_t read_end_samples;
 			
 			// fprintf(stderr, "samplerate:%i\n", frame->sample_rate);
-			return_if(frame->sample_rate != config->samplerate_hz, -1);
-			return_if(frame->format != AV_SAMPLE_FMT_FLTP, -1); // Assert that we are dealing in 4-byte floats
+			cleanup_if(frame->sample_rate != config->samplerate_hz);
+			cleanup_if(frame->format != AV_SAMPLE_FMT_FLTP); // Assert that we are dealing in 4-byte floats
 
 			//pts_samples is the presentation timestamp in terms of samples
-			return_if(frame->pts % tb_per_sample != 0, -1);
+			cleanup_if(frame->pts % tb_per_sample != 0);
 			pts_samples = frame->pts / tb_per_sample;
 			
 			//read_start_samples and read_end_samples are relative to the returned frame
@@ -132,7 +130,7 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 
 			// fprintf(stderr, "count %li\n", (read_end_samples - read_start_samples));
 
-			return_if(frame->channels != 1, -1);
+			cleanup_if(frame->channels != 1);
 			
 			memcpy(
 				output_buffer + output_samples,
@@ -147,13 +145,14 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 		av_packet_unref(packet);
 	}
 
-	av_packet_free(&packet);
-	av_frame_free(&frame);
+	rc = 0;
+	cleanup:
 
-	avformat_close_input(&format_context);
-	avcodec_free_context(&decoder_context);
+	if(packet)av_packet_free(&packet);
+	if(frame)av_frame_free(&frame);
 
-	// (*output) = output_buffer;
+	if(format_context)avformat_close_input(&format_context);
+	if(decoder_context)avcodec_free_context(&decoder_context);
 
-	return 0;
+	return rc;
 }
