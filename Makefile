@@ -3,7 +3,7 @@ build-here: src/* pysrc/setup.py
 	python3 pysrc/setup.py build_ext --inplace && cp arsd/* pysrc/
 
 install:
-	if ! python3 pysrc/setup.py install; then \
+	if ! python3 pysrc/setup.py install --user; then \
 		echo ""; \
 		echo "------------------------------------------------------------------------------------------------------"; \
 		echo ""; \
