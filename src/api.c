@@ -44,6 +44,8 @@ int32_t pick_batch(int32_t set_i, char** dest){
 	PyObject* py_batch_size = NULL;
 	PyObject* args = NULL;
 
+
+	PyObject* filenames_unchecked = NULL;
 	PyObject* filenames = NULL;
 	//Different pointers to the same object
 	PyObject* current_filename_unchecked = NULL;
@@ -61,12 +63,14 @@ int32_t pick_batch(int32_t set_i, char** dest){
 	PyTuple_SetItem(args, 0, py_set_i);
 	PyTuple_SetItem(args, 1, py_batch_size);
 	
-	filenames = PyObject_CallObject((PyObject*)batch_picker, args);
-	if(PyErr_Occurred() || !filenames)
+	filenames_unchecked = PyObject_CallObject((PyObject*)batch_picker, args);
+	if(PyErr_Occurred() || !filenames_unchecked)
 		goto cleanup;
 
-	if(PyArray_Check(filenames)){
-		filenames = PyArray_ToList(filenames); //TODO: cleanup this
+	if(PyArray_Check(filenames_unchecked)){
+		filenames = PyArray_ToList(filenames_unchecked); //TODO: cleanup this
+	} else {
+		filenames = filenames_unchecked;
 	}
 
 	if(PyList_Check(filenames)){
@@ -106,8 +110,9 @@ int32_t pick_batch(int32_t set_i, char** dest){
 
 	if(args) Py_DECREF(args);
 
+	if(filenames != filenames_unchecked && filenames_unchecked) Py_DECREF(filenames_unchecked);
 	if(filenames) Py_DECREF(filenames);
-
+	
 	if(current_filename_encoded) Py_DECREF(current_filename_encoded);
 
 	return rc;

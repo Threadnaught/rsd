@@ -24,16 +24,15 @@ def find(path, pattern):
 # sets = [list_fullpath('samples/many'), list_fullpath('samples/many-2')]
 sets = np.asarray([find('samples/fma_medium', '.*\\.mp3')])
 
-
 def pick_batch(set_i, batch_size):
 	# print('picking', set_i, batch_size)
 	chosen_set = sets[0]
 
 	ret = chosen_set[np.random.choice(len(chosen_set), [batch_size])]
 	# ret[50] = 'samples/000002.mp3'
-	return list(ret) # TODO: this style cast seems to prevent the memory leak
+	return ret # TODO: this style cast seems to prevent the memory leak
 
-arsd.init(pick_batch, 100, 2)
+arsd.init(pick_batch, 100, 1)
 
 while True:
 	start = datetime.datetime.utcnow()
