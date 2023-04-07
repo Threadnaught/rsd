@@ -39,15 +39,33 @@ int32_t get_function_argument(PyObject *object, void *address){
 
 
 int32_t pick_batch(int32_t set_i, char** dest){
-	if(!batch_picker)
-		return -1;
-	PyObject* args = PyTuple_New(2);
-	PyTuple_SetItem(args, 0, PyLong_FromLong(set_i));
-	PyTuple_SetItem(args, 1, PyLong_FromLong(config.batch_size));
+	int rc = -1;
+	PyObject* py_set_i = NULL;
+	PyObject* py_batch_size = NULL;
+	PyObject* args = NULL;
 
-	PyObject* filenames = PyObject_CallObject((PyObject*)batch_picker, args);
+	PyObject* filenames = NULL;
+	int own_filenames = 0;
+
+	//Different pointers to the same object
+	PyObject* current_filename_unchecked = NULL;
+	PyUnicodeObject* current_filename = NULL;
+	
+	PyObject* current_filename_encoded = NULL;
+	
+	if(!batch_picker)
+		goto cleanup;
+
+	py_set_i = PyLong_FromLong(set_i);
+	py_batch_size = PyLong_FromLong(config.batch_size);
+
+	args = PyTuple_New(2);
+	PyTuple_SetItem(args, 0, py_set_i);
+	PyTuple_SetItem(args, 1, py_batch_size);
+
+	filenames = PyObject_CallObject((PyObject*)batch_picker, args);
 	if(PyErr_Occurred() || !filenames)
-		return -1;
+		goto cleanup;
 
 	if(PyArray_Check(filenames)){
 		filenames = PyArray_ToList(filenames);
@@ -59,32 +77,41 @@ int32_t pick_batch(int32_t set_i, char** dest){
 
 		if (file_count != config.batch_size){
 			PyErr_SetString(PyExc_ValueError, "pick_batch should return batch_size of filenames");
-			return -1;
+			goto cleanup;
 		}
 
 		for(int32_t i = 0; i < file_count; i++){
-			PyObject* current_filename_unchecked = PyList_GetItem(filenames, i);
+			current_filename_unchecked = PyList_GetItem(filenames, i);
 			if(!PyUnicode_Check(current_filename_unchecked)){
 				PyErr_SetString(PyExc_ValueError, "pick_batch should return a list of string filenames");
-				return -1;
+				goto cleanup;
 			}
-			PyUnicodeObject* current_filename = (PyUnicodeObject*)current_filename_unchecked;
-			PyObject* current_filename_encoded = PyUnicode_AsEncodedString(current_filename,  "UTF-8", "strict");
+			current_filename = (PyUnicodeObject*)current_filename_unchecked;
+			current_filename_encoded = PyUnicode_AsEncodedString(current_filename,  "UTF-8", "strict");
 			
 			if(PyBytes_Size(current_filename_encoded) >= max_file_len - 1){
 				PyErr_SetString(PyExc_ValueError, "returned filenames must be shorter than max_file_len");
-				return -1;
+				goto cleanup;
 			}
 			strncpy(dest[i], PyBytes_AsString(current_filename_encoded), max_file_len-1);
-
-			//TODO: deallocate all these damned objects
 		}
 		
-		return 0;
+		rc = 0;
+		goto cleanup;
 	}
 
 	PyErr_SetString(PyExc_ValueError, "pick_batch should return a list of filenames");
-	return -1;
+	
+	cleanup:
+
+	if(py_set_i) Py_DECREF(py_set_i);
+	if(py_batch_size) Py_DECREF(py_batch_size);
+	if(args) Py_DECREF(args);
+
+	if(current_filename_unchecked) Py_DECREF(current_filename_unchecked);
+	if(current_filename_encoded) Py_DECREF(current_filename_encoded);
+
+	return rc;
 }
 
 arsd_config_t defaults(){
