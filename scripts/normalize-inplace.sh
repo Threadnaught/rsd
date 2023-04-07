@@ -23,7 +23,8 @@ for f in $files; do
 			mv $f-converted.mp3 $f
 			echo "converted $f"
 		else
-			echo "CONVERTING FILE $f FAILED. DELETING."
+			echo "File $f failed to convert. See bad-files.txt for full list"
+			echo $f > bad-files.txt
 			rm $f $f-converted.mp3
 		fi
 	} &

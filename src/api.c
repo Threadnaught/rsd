@@ -45,6 +45,7 @@ int32_t pick_batch(int32_t set_i, char** dest){
 	PyObject* args = NULL;
 
 	PyObject* filenames = NULL;
+	// int decref_filenames = 0;
 
 	//Different pointers to the same object
 	PyObject* current_filename_unchecked = NULL;
@@ -93,6 +94,8 @@ int32_t pick_batch(int32_t set_i, char** dest){
 				goto cleanup;
 			}
 			strncpy(dest[i], PyBytes_AsString(current_filename_encoded), max_file_len-1);
+			Py_DECREF(current_filename_encoded);
+			current_filename_encoded = NULL;
 		}
 		
 		rc = 0;
@@ -103,11 +106,10 @@ int32_t pick_batch(int32_t set_i, char** dest){
 	
 	cleanup:
 
-	if(py_set_i) Py_DECREF(py_set_i);
-	if(py_batch_size) Py_DECREF(py_batch_size);
 	if(args) Py_DECREF(args);
 
-	if(current_filename_unchecked) Py_DECREF(current_filename_unchecked);
+	if(filenames) Py_DECREF(filenames); // TODO: handle non-np usage
+
 	if(current_filename_encoded) Py_DECREF(current_filename_encoded);
 
 	return rc;

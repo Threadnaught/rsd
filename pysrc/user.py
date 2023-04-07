@@ -5,6 +5,7 @@ import soundfile as sf
 import os
 import stat
 import re
+import datetime
 
 def find(path, pattern):
 	if stat.S_ISDIR(os.stat(path).st_mode):
@@ -29,14 +30,19 @@ def pick_batch(set_i, batch_size):
 	chosen_set = sets[set_i]
 
 	ret = chosen_set[np.random.choice(len(chosen_set), [batch_size])]
-	ret[50] = 'samples/000002.mp3'
+	# ret[50] = 'samples/000002.mp3'
 	return ret
 
 arsd.init(pick_batch, 100, 1)
 
 while True:
-	data = arsd.draw_batch(0)
-	print(data.shape)
+	start = datetime.datetime.utcnow()
+	for _ in range(100):
+		data = arsd.draw_batch(0)
+	end = datetime.datetime.utcnow()
+
+	
+	print(end, ' shape:', data.shape, 'time per:', end - start)
 
 	# sf.write('samples/clip.flac', data[10], 44100)
 
