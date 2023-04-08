@@ -127,7 +127,7 @@ arsd_config_t defaults(){
 	ret.samplerate_hz = 44100;
 	ret.clip_len_ms = 750;
 	ret.clip_len_samples = -1; //Autofilled by init_decoder
-	ret.run_in_samples= 2000;
+	ret.run_in_samples= 5000;
 
 	ret.batch_size = -1;
 	ret.set_count = 1;
@@ -261,9 +261,45 @@ PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 	return arr;
 }
 
+PyObject* py_BLOCKING_draw_clip(PyObject *self, PyObject *args, PyObject *kwargs){
+	raise_if_not_inited();
+	char* filename;
+	float* output = NULL;
+	char* keywords[] = {
+		"filename",
+		NULL
+	};
+
+	if(!PyArg_ParseTupleAndKeywords(
+		args,
+		kwargs,
+		"s",
+		keywords,
+		&filename)
+	){
+		return NULL;
+	}
+
+	output = (float*)malloc(config.clip_len_samples * sizeof(float));
+
+	if(BLOCKING_draw_clip(filename, output) != 0){
+		PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
+		Py_RETURN_NONE;
+	}
+	
+	npy_intp dims[1] = {config.clip_len_samples};
+
+	PyObject* arr = PyArray_SimpleNewFromData(1, dims, NPY_FLOAT32, output);
+	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA);
+
+	return arr;
+}
+
+
 PyMethodDef arsd_methods[] = {
 	{"init",				(PyCFunction*)py_arsd_init,				METH_VARARGS | METH_KEYWORDS,	""},
 	{"draw_batch",			(PyCFunction*)py_draw_batch,			METH_VARARGS | METH_KEYWORDS,	""},
+	{"BLOCKING_draw_clip",	(PyCFunction*)py_BLOCKING_draw_clip,		METH_VARARGS | METH_KEYWORDS,	""},
 	{NULL,					NULL,									0,								NULL}
 };
 PyModuleDef arsd_definition ={
