@@ -64,7 +64,7 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 	cleanup_if(avformat_open_input(&format_context, filename, NULL, NULL) != 0);
 	
 	// Fast seek is absolutely required for perf on larger files
-	format_context->flags |= AVFMT_FLAG_FAST_SEEK;
+	format_context->flags |= AVFMT_FLAG_FAST_SEEK | AVFMT_FLAG_NOBUFFER;
 
 	cleanup_if(avformat_find_stream_info(format_context, NULL) != 0);
 	cleanup_if(
