@@ -32,3 +32,14 @@ int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output);
 // decoder:
 int32_t init_decoder(arsd_config_t* config);
 int32_t BLOCKING_draw_clip(char* filename, float* output_buffer);
+
+//Need this everywhere:
+#define timer(instruction, short_name) {\
+	struct timeval start, end; \
+	int64_t diff; \
+	gettimeofday(&start, NULL); \
+	{instruction;} \
+	gettimeofday(&end, NULL); \
+	diff = ((end.tv_sec - start.tv_sec) * 1000 * 1000) + ((end.tv_usec - start.tv_usec)); \
+	fprintf(stderr, "%s took %li us\n", #short_name, diff); \
+}

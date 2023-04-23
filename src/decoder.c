@@ -62,6 +62,10 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 	// fprintf(stderr, "Opening %s\n", filename);
 
 	cleanup_if(avformat_open_input(&format_context, filename, NULL, NULL) != 0);
+	
+	// Fast seek is absolutely required for perf on larger files
+	format_context->flags |= AVFMT_FLAG_FAST_SEEK;
+
 	cleanup_if(avformat_find_stream_info(format_context, NULL) != 0);
 	cleanup_if(
 		(chosen_stream = av_find_best_stream(format_context, AVMEDIA_TYPE_AUDIO, -1, -1, &decoder, 0)) < 0
@@ -88,7 +92,7 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 	// Due to MP3 being weird, we need to start decoding ~2000 samples before we start to read
 	seek_point_tb = (seek_point_samples - config->run_in_samples) * tb_per_sample;
 	seek_point_tb = seek_point_tb < 0 ? 0 : seek_point_tb;
-	
+
 	cleanup_if(avformat_seek_file(format_context, chosen_stream, 0, seek_point_tb, seek_point_tb, 0) < 0);
 
 	output_samples = 0;

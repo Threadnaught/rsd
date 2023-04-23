@@ -8,15 +8,6 @@
 #include "numpy/ndarraytypes.h"
 #include "numpy/arrayobject.h"
 
-#define timer(instruction, short_name) {\
-	struct timeval start, end; \
-	int64_t diff; \
-	gettimeofday(&start, NULL); \
-	{instruction;} \
-	gettimeofday(&end, NULL); \
-	diff = ((end.tv_sec - start.tv_sec) * 1000 * 1000) + ((end.tv_usec - start.tv_usec)); \
-	fprintf(stderr, "%s took %li us\n", #short_name, diff); \
-}
 #define raise_if_not_inited() \
 	if(!inited){\
 		PyErr_SetString(PyExc_ValueError, "Call arsd.init() before using arsd"); \
