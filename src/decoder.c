@@ -9,6 +9,9 @@
 #define cleanup_if(statement) {\
 	if(statement) {\
 		fprintf(stderr, "cleanup_if assertion failed:%s\n", #statement);\
+		fprintf(stderr, \
+			"tb_per_sample %i, file_len_tb  %li, file_len_samples  %li, seek_point_samples  %li, seek_point_tb  %li, output_samples  %li, pts_samples  %li, read_start_samples  %li, read_end_samples  %li\n",\
+			tb_per_sample, file_len_tb, file_len_samples, seek_point_samples, seek_point_tb, output_samples, pts_samples, read_start_samples, read_end_samples);\
 		goto cleanup;\
 	}\
 }
@@ -40,31 +43,43 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 
 	int32_t chosen_stream = 0;
 	
-	const AVCodec* decoder;
+	AVCodec* decoder;
 	AVCodecContext* decoder_context;
 
 	AVPacket* packet;
 	AVFrame* frame;
 
 	AVRational timebase_s;
-	int32_t tb_per_sample;
+	// int32_t tb_per_sample;
 
-	int64_t file_len_tb;
-	int64_t file_len_samples;
-	int64_t seek_point_samples;
-	int64_t seek_point_tb;
-	int64_t output_samples;
+	// int64_t file_len_tb;
+	// int64_t file_len_samples;
+	// int64_t seek_point_samples;
+	// int64_t seek_point_tb;
+	// int64_t output_samples;
 
-	int64_t pts_samples;
-	int64_t read_start_samples;
-	int64_t read_end_samples;
+	// int64_t pts_samples;
+	// int64_t read_start_samples;
+	// int64_t read_end_samples;
+
+	int32_t tb_per_sample = -1;
+
+	int64_t file_len_tb = -1;
+	int64_t file_len_samples = -1;
+	int64_t seek_point_samples = -1;
+	int64_t seek_point_tb = -1;
+	int64_t output_samples = -1;
+
+	int64_t pts_samples = -1;
+	int64_t read_start_samples = -1;
+	int64_t read_end_samples = -1;
 
 	// fprintf(stderr, "Opening %s\n", filename);
 
 	cleanup_if(avformat_open_input(&format_context, filename, NULL, NULL) != 0);
 	
 	// Fast seek is absolutely required for perf on larger files
-	format_context->flags |= AVFMT_FLAG_FAST_SEEK | AVFMT_FLAG_NOBUFFER;
+	format_context->flags |= AVFMT_FLAG_FAST_SEEK;
 
 	cleanup_if(avformat_find_stream_info(format_context, NULL) != 0);
 	cleanup_if(
@@ -82,8 +97,8 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 	tb_per_sample = timebase_s.den / (timebase_s.num * config->samplerate_hz);
 
 	file_len_tb = format_context->streams[chosen_stream]->duration;
-	cleanup_if((file_len_tb % tb_per_sample) != 0);
 	file_len_samples = file_len_tb / tb_per_sample;
+	cleanup_if((file_len_tb % tb_per_sample) != 0);
 
 	seek_point_samples =
 		((((long)rand()) << 32) | ((long)rand()))
@@ -118,8 +133,8 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 			cleanup_if(frame->format != AV_SAMPLE_FMT_FLTP); // Assert that we are dealing in 4-byte floats
 
 			//pts_samples is the presentation timestamp in terms of samples
-			cleanup_if(frame->pts % tb_per_sample != 0);
 			pts_samples = frame->pts / tb_per_sample;
+			cleanup_if(frame->pts % tb_per_sample != 0);
 			
 			//read_start_samples and read_end_samples are relative to the returned frame
 			read_start_samples = seek_point_samples - pts_samples;

@@ -18,7 +18,7 @@ def find(path, pattern):
 
 	return []
 
-all_files = np.asarray(find('/mnt/datasets/fma_medium_normalized', '.*\\.mp3'))
+all_files = np.asarray(find('/mnt/datasets/fma_full', '.*\\.mp3'))
 
 validation_split = len(all_files) // 16
 validation_shuffler = np.random.default_rng(0) #Make sure we always get the same split
@@ -32,7 +32,7 @@ def pick_batch(batch_size, set_i):
 	ret = chosen_set[np.random.choice(len(chosen_set), [batch_size])]
 	return ret
 
-arsd.init(pick_batch, 100, 2)
+arsd.init(pick_batch, 100, 2, thread_count=5)
 
 while True:
 	start = datetime.datetime.utcnow()
