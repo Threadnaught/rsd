@@ -4,7 +4,7 @@
 #define max_batch_size 1000
 #define max_sets 5
 #define max_backlog 20
-#define max_threads 24
+#define max_threads 48
 
 struct arsd_config{
 	int32_t samplerate_hz;
