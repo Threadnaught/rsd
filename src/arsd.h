@@ -8,7 +8,6 @@
 
 struct arsd_config{
 	int32_t samplerate_hz;
-	int32_t clip_len_ms;
 	int32_t clip_len_samples;
 	int32_t run_in_samples;
 

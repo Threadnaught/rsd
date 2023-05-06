@@ -116,8 +116,7 @@ arsd_config_t defaults(){
 	arsd_config_t ret;
 
 	ret.samplerate_hz = 44100;
-	ret.clip_len_ms = 750;
-	ret.clip_len_samples = -1; //Autofilled by init_decoder
+	ret.clip_len_samples = 33075;
 	ret.run_in_samples= 5000;
 
 	ret.batch_size = -1;
@@ -161,7 +160,7 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		"batch_size",
 		"set_count",
 		"samplerate_hz",
-		"clip_len_ms",
+		"clip_len_samples",
 		"run_in_samples",
 		"backlog",
 		"thread_count",
@@ -177,7 +176,7 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		&config.batch_size,
 		&config.set_count,
 		&config.samplerate_hz,
-		&config.clip_len_ms,
+		&config.clip_len_samples,
 		&config.run_in_samples,
 		&config.backlog_depth,
 		&config.thread_count

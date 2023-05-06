@@ -107,7 +107,6 @@ void* worker_thread(void* unused){
 					completed_batches[set][depth] + (config->clip_len_samples * i)
 				) != 0){
 					fprintf(stderr, "Discarding entire batch due to %s decode failure\n", batch_file_names[set][depth][i]);
-					// TODO: link to GH here
 					fprintf(stderr, "See https://github.com/Threadnaught/arsd#file-normalization for details of how to normalize your input files.\n");
 					decode_failed = 1;
 					break;
