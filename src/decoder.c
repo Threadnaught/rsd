@@ -23,16 +23,6 @@ int32_t init_decoder(arsd_config_t* config_in){
 
 	av_log_set_level(AV_LOG_ERROR);
 
-	int32_t clip_length_samplerate_product;
-	//Set trivial variables
-	
-	//For this case, I think we should warn and keep moving
-	clip_length_samplerate_product = config->samplerate_hz * config->clip_len_ms;
-	if((clip_length_samplerate_product % 1000) != 0){
-		fprintf(stderr, "WARNING: requested clip length does not evenly divide into samples. Continuing.\n");
-	}
-	config->clip_len_samples = clip_length_samplerate_product / 1000;
-
 	return 0;
 }
 
@@ -50,17 +40,6 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 	AVFrame* frame;
 
 	AVRational timebase_s;
-	// int32_t tb_per_sample;
-
-	// int64_t file_len_tb;
-	// int64_t file_len_samples;
-	// int64_t seek_point_samples;
-	// int64_t seek_point_tb;
-	// int64_t output_samples;
-
-	// int64_t pts_samples;
-	// int64_t read_start_samples;
-	// int64_t read_end_samples;
 
 	int32_t tb_per_sample = -1;
 
