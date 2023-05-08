@@ -42,18 +42,18 @@ for i in range(10):
 		if np.isnan(data).any():
 			print('discarding batch containing NaN')
 			exit()
-		if (data > 100).any() or (data < -100).any():
-			print('discarding batch with unreasonably high/low values')
-			exit()
+		# if (data > 100).any() or (data < -100).any():
+		# 	print('discarding batch with unreasonably high/low values')
+		# 	exit()
 
 	data = arsd.draw_batch(1)
 
 	if np.isnan(data).any():
 		print('discarding batch containing NaN')
 		exit()
-	if (data > 100).any() or (data < -100).any():
-		print('discarding batch with unreasonably high/low values')
-		exit()
+	# if (data > 100).any() or (data < -100).any():
+	# 	print('discarding batch with unreasonably high/low values')
+	# 	exit()
 	end = datetime.datetime.utcnow()
 	
 	print(end, ' shape:', data.shape, 'time per:', end - start)

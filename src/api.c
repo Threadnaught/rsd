@@ -117,7 +117,7 @@ arsd_config_t defaults(){
 
 	ret.samplerate_hz = 44100;
 	ret.clip_len_samples = 33075;
-	ret.run_in_samples= 5000;
+	ret.run_in_samples = 5000;
 
 	ret.batch_size = -1;
 	ret.set_count = 1;
@@ -242,6 +242,14 @@ PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 			PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
 		Py_RETURN_NONE;
 	}
+
+	for(int i = 0; i < config.batch_size * config.clip_len_samples; i++)
+		if(isnan(output[i])) {
+			fprintf(stderr, "BAD DECODE (api)\n");
+			break;
+		}
+
+	
 	
 	npy_intp dims[2] = {config.batch_size, config.clip_len_samples};
 

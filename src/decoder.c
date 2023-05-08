@@ -26,7 +26,6 @@ int32_t init_decoder(arsd_config_t* config_in){
 }
 
 int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
-	int32_t rc = -1;
 
 	AVFormatContext* format_context = NULL;
 
@@ -88,13 +87,16 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 
 	cleanup_if(avformat_seek_file(format_context, chosen_stream, 0, seek_point_tb, seek_point_tb, 0) < 0);
 
-	// output_samples = 0;
+	output_samples = 0;
+
+	int64_t next = -1;
 
 	// The fun bit
-	while ((output_samples) < config->clip_len_samples) {
-		if(av_read_frame(format_context, packet) != 0){
-			break;
-		}
+	while (output_samples < config->clip_len_samples) {
+		// if(av_read_frame(format_context, packet) != 0){
+		// 	break;
+		// }
+		cleanup_if(av_read_frame(format_context, packet) != 0);
 			
 		if (packet->stream_index != chosen_stream){
 			// This is not the correct stream, skip it
@@ -137,12 +139,15 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 
 			output_samples += read_end_samples - read_start_samples;
 
+			next = pts_samples + output_samples;
+
 			// fprintf(stderr, "output_samples %li\n", (*output_samples));
 		}
 		av_packet_unref(packet);
 	}
 
-	rc = 0;
+	// cleanup_if(output_samples != config->clip_len_samples);
+
 	cleanup:
 
 	if(packet)av_packet_free(&packet);
@@ -151,20 +156,5 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 	if(format_context)avformat_close_input(&format_context);
 	if(decoder_context)avcodec_free_context(&decoder_context);
 
-	// TEMP
-	for(int i = 0; i < output_samples; i++)
-		if(isnan(output_buffer[i])) {
-			fprintf(stderr, "BAD DECODE FOR FILE %s\n", filename);
-			fprintf(
-				stderr, 
-				"tb_per_sample %i, file_len_tb  %li, file_len_samples  %li, seek_point_samples  %li, seek_point_tb  %li, output_samples  %li, pts_samples  %li, read_start_samples  %li, read_end_samples  %li\n",
-				tb_per_sample, file_len_tb, file_len_samples, seek_point_samples, seek_point_tb, output_samples, pts_samples, read_start_samples, read_end_samples
-			);
-			break;
-		}
-	
-	fprintf(stderr, "output_samples %li\n", output_samples);
-
-
-	return rc;
+	return output_samples;
 }
