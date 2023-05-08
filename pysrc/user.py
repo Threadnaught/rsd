@@ -32,13 +32,22 @@ def pick_batch(batch_size, set_i):
 	ret = chosen_set[np.random.choice(len(chosen_set), [batch_size])]
 	return ret
 
-arsd.init(pick_batch, 100, 2, thread_count=5)
+arsd.init(pick_batch, 100, 2, thread_count=12)
 
 while True:
 	start = datetime.datetime.utcnow()
 	for _ in range(100):
 		data = arsd.draw_batch(0)
+
+		if np.isnan(data).any():
+			print('discarding batch containing NaN')
+			exit()
+
 	data = arsd.draw_batch(1)
+
+	if np.isnan(data).any():
+		print('discarding batch containing NaN')
+		exit()
 	end = datetime.datetime.utcnow()
 	
 	print(end, ' shape:', data.shape, 'time per:', end - start)
