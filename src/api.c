@@ -242,7 +242,7 @@ PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 			PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
 		Py_RETURN_NONE;
 	}
-	
+
 	npy_intp dims[2] = {config.batch_size, config.clip_len_samples};
 
 	PyObject* arr = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT32, output);

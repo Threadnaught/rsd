@@ -84,6 +84,7 @@ void* worker_thread(void* unused){
 		int32_t set = -1;
 		int32_t should_decode = 0;
 		int32_t decode_failed = 0;
+
 		locking(common_lock, {
 			// Prefer one for each set, not all in one set and none in the others
 			for(depth = 0; depth < config->backlog_depth && (!should_decode); depth++){
@@ -92,6 +93,11 @@ void* worker_thread(void* unused){
 						// fprintf(stderr, "Set decoding %i %i\n", set, depth);
 						batch_statuses[set][depth] = decoding;
 						completed_batches[set][depth] = (float*)malloc(config->batch_size * config->clip_len_samples * sizeof(float));
+
+						// TEMPORARY - force NaN to be in all batches with gaps TODO remove
+						for(int i = 0; i < config->batch_size * config->clip_len_samples; i++)
+							completed_batches[set][depth][i] = -sqrt(-1);
+
 						should_decode = 1;
 					}
 				}
@@ -107,7 +113,6 @@ void* worker_thread(void* unused){
 					completed_batches[set][depth] + (config->clip_len_samples * i)
 				) != 0){
 					fprintf(stderr, "Discarding entire batch due to %s decode failure\n", batch_file_names[set][depth][i]);
-					// TODO: link to GH here
 					fprintf(stderr, "See https://github.com/Threadnaught/arsd#file-normalization for details of how to normalize your input files.\n");
 					decode_failed = 1;
 					break;
@@ -120,6 +125,12 @@ void* worker_thread(void* unused){
 					free(completed_batches[set][depth]);
 					batch_statuses[set][depth] = needs_filenames;
 				} else {
+
+					for(int i = 0; i < config->batch_size * config->clip_len_samples; i++)
+						if(isnan(completed_batches[set][depth][i])) {
+							fprintf(stderr, "BAD DECODE starts at %i/%i\n", i, config->batch_size * config->clip_len_samples);
+							break;
+						}
 
 					// fprintf(stderr, "Decoded\n");
 					batch_statuses[set][depth] = decoded;
@@ -164,8 +175,9 @@ int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output){
 			}
 		});
 
-		if((*output) != NULL)
+		if((*output) != NULL){
 			return 0;
+		}
 
 		sleep_ms(1);
 	}

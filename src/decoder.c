@@ -20,7 +20,6 @@ static arsd_config_t* config;
 
 int32_t init_decoder(arsd_config_t* config_in){
 	config = config_in;
-
 	av_log_set_level(AV_LOG_ERROR);
 
 	return 0;
@@ -57,8 +56,8 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 
 	cleanup_if(avformat_open_input(&format_context, filename, NULL, NULL) != 0);
 	
-	// Fast seek is absolutely required for perf on larger files
-	format_context->flags |= AVFMT_FLAG_FAST_SEEK;
+	// Fast seek is possibly required for perf on larger files - seems not to be required on my new machine
+	// format_context->flags |= AVFMT_FLAG_FAST_SEEK;
 
 	cleanup_if(avformat_find_stream_info(format_context, NULL) != 0);
 	cleanup_if(
@@ -92,10 +91,8 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 	output_samples = 0;
 
 	// The fun bit
-	while ((output_samples) < config->clip_len_samples) {
-		if(av_read_frame(format_context, packet) != 0){
-			break;
-		}
+	while (output_samples < config->clip_len_samples) {
+		cleanup_if(av_read_frame(format_context, packet) != 0);
 			
 		if (packet->stream_index != chosen_stream){
 			// This is not the correct stream, skip it
@@ -144,6 +141,8 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer){
 	}
 
 	rc = 0;
+	cleanup_if(output_samples != config->clip_len_samples);
+
 	cleanup:
 
 	if(packet)av_packet_free(&packet);
