@@ -19,7 +19,7 @@ for f in $files; do
 	done
 
 	{
-		if ffmpeg -loglevel panic -i $f -ar 44100 -ac 1 $f-converted.mp3; then
+		if ./normalize-file.sh $f $f-converted.mp3; then
 			mv $f-converted.mp3 $f
 			echo "converted $f"
 		else
