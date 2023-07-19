@@ -16,6 +16,8 @@ struct arsd_config{
 	int32_t backlog_depth;
 	int32_t thread_count;
 	int32_t pass_set_i;
+	int32_t rng_seed;
+	int32_t verbose;
 };
 
 #define arsd_config_t struct arsd_config
@@ -24,13 +26,13 @@ struct arsd_config{
 int32_t pick_batch(int32_t set_i, char** dest);
 
 // scheduler:
-int32_t init_scheduler(arsd_config_t* config);
-int32_t BLOCKING_draw_batch(int32_t set_i, float* output);
+int32_t init_scheduler(arsd_config_t* config_in, uint32_t* blocking_rng_state);
+int32_t BLOCKING_draw_batch(int32_t set_i, float* output, uint32_t* rng_state);
 int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output);
 
 // decoder:
 int32_t init_decoder(arsd_config_t* config);
-int32_t BLOCKING_draw_clip(char* filename, float* output_buffer);
+int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_state);
 
 //Need this everywhere:
 #define timer(instruction, short_name) {\
