@@ -20,7 +20,8 @@ static arsd_config_t* config;
 
 int32_t init_decoder(arsd_config_t* config_in){
 	config = config_in;
-	// av_log_set_level(AV_LOG_ERROR);
+	if(!config_in->verbose)
+		av_log_set_level(AV_LOG_ERROR);
 
 	return 0;
 }

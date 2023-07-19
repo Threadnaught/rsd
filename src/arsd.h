@@ -17,6 +17,7 @@ struct arsd_config{
 	int32_t thread_count;
 	int32_t pass_set_i;
 	int32_t rng_seed;
+	int32_t verbose;
 };
 
 #define arsd_config_t struct arsd_config

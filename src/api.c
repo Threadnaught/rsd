@@ -127,6 +127,7 @@ arsd_config_t defaults(){
 	ret.backlog_depth = 5;
 	ret.thread_count = 5;
 	ret.rng_seed = -1;
+	ret.verbose = 0;
 	
 	return ret;
 }
@@ -169,13 +170,14 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		"backlog",
 		"thread_count",
 		"rng_seed",
+		"verbose",
 		NULL
 	};
 
 	if(!PyArg_ParseTupleAndKeywords(
 		args,
 		kwargs,
-		"O&i|iiiiiii",
+		"O&i|iiiiiiib",
 		keywords,
 		get_function_argument, &batch_picker,
 		&config.batch_size,
@@ -185,7 +187,8 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		&config.run_in_samples,
 		&config.backlog_depth,
 		&config.thread_count,
-		&config.rng_seed
+		&config.rng_seed,
+		&config.verbose
 	)){
 		return NULL;
 	}

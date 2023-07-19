@@ -32,7 +32,7 @@ def pick_batch(batch_size, set_i):
 	ret = chosen_set[np.random.choice(len(chosen_set), [batch_size])]
 	return ret
 
-arsd.init(pick_batch, 100, 2, thread_count=12)
+arsd.init(pick_batch, 100, 2, thread_count=12, verbose=True)
 
 while True:
 	start = datetime.datetime.utcnow()
