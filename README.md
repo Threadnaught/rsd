@@ -64,4 +64,6 @@ while True:
 
 ## File Normalization
 
+_Note:_ ARSD is still under active development, so you'll probably see this periodically even for correctly normalized files.
+
 ARSD expects audio files to be uniform in format, sample rate and channel count for maximum decode rate. Use [normalize-inplace.sh](./scripts/normalize-inplace.sh).

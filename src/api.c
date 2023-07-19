@@ -18,6 +18,9 @@ PyFunctionObject* batch_picker = NULL;
 int32_t inited;
 static arsd_config_t config;
 
+// RNG state for main non-worker thread
+uint32_t blocking_rng_state;
+
 int32_t get_function_argument(PyObject *object, void *address){
 	if(!PyFunction_Check(object)){
 		PyErr_SetString(PyExc_ValueError, "File picker must be a function");
@@ -123,6 +126,7 @@ arsd_config_t defaults(){
 	ret.set_count = 1;
 	ret.backlog_depth = 5;
 	ret.thread_count = 5;
+	ret.rng_seed = -1;
 	
 	return ret;
 }
@@ -148,12 +152,12 @@ int32_t validate_config(arsd_config_t cfg){
 }
 
 PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
-	config = defaults();
-
 	if(inited){
 		PyErr_SetString(PyExc_RuntimeError, "AlReAdY iNiTeD");
 		Py_RETURN_NONE;
 	}
+
+	config = defaults();
 	
 	char* keywords[] = {
 		"pick_batch",
@@ -164,13 +168,14 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		"run_in_samples",
 		"backlog",
 		"thread_count",
+		"rng_seed",
 		NULL
 	};
 
 	if(!PyArg_ParseTupleAndKeywords(
 		args,
 		kwargs,
-		"O&i|iiiiii",
+		"O&i|iiiiiii",
 		keywords,
 		get_function_argument, &batch_picker,
 		&config.batch_size,
@@ -179,7 +184,8 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		&config.clip_len_samples,
 		&config.run_in_samples,
 		&config.backlog_depth,
-		&config.thread_count
+		&config.thread_count,
+		&config.rng_seed
 	)){
 		return NULL;
 	}
@@ -199,9 +205,16 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		Py_RETURN_NONE;
 	}
 
+	blocking_rng_state = config.rng_seed;
+	if(blocking_rng_state == -1) {
+		blocking_rng_state = time(NULL);
+	} else {
+		fprintf(stderr, "WARNING: rng seed has been pinned to %i\n", blocking_rng_state);
+	}
+
 	if(
 		(init_decoder(&config) != 0) ||
-		(init_scheduler(&config) != 0)
+		(init_scheduler(&config, &blocking_rng_state) != 0)
 	){
 		PyErr_SetString(PyExc_RuntimeError, "arsd init failed");
 		Py_RETURN_NONE;
@@ -272,7 +285,7 @@ PyObject* py_BLOCKING_draw_clip(PyObject *self, PyObject *args, PyObject *kwargs
 
 	output = (float*)malloc(config.clip_len_samples * sizeof(float));
 
-	if(BLOCKING_draw_clip(filename, output) != 0){
+	if(BLOCKING_draw_clip(filename, output, &blocking_rng_state) != 0){
 		PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
 		Py_RETURN_NONE;
 	}
@@ -303,9 +316,6 @@ PyModuleDef arsd_definition ={
 PyMODINIT_FUNC PyInit_arsd(void){
 	PyObject* module;
 
-	srand(time(NULL));
-	// srand(0);
-	
 	Py_Initialize();
 	import_array();
 	module = PyModule_Create(&arsd_definition);
