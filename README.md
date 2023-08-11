@@ -8,11 +8,28 @@ ARSD's multithreaded architecture allows the next batches to be CPU decoded in t
 
 ### Install dependencies
 
-If you are on debian/ubuntu, you should be able to run `apt install ffmpeg libavutil-dev libavcodec-dev libavformat-dev libavfilter-dev`.
+#### System packages
+If you are on debian/ubuntu, you should be able to run
+
+```
+apt install ffmpeg libavutil-dev libavcodec-dev libavformat-dev libavfilter-dev
+```
+
+On arch, this should work:
+
+```
+pacman -S ffmpeg
+```
 
 If you are on other linux or osx, these packages should be available but may have different names.
 
 If you are on windows, may god have mercy on your soul.
+
+### Pip packages
+
+```
+pip install numpy
+```
 
 ### Install arsd
 

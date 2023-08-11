@@ -3,7 +3,7 @@ build-here: src/* pysrc/setup.py
 	python3 pysrc/setup.py build_ext --inplace && mv ./arsd.cpython* pysrc
 
 install:
-	rm pysrc/arsd.cpython*
+	rm -f pysrc/arsd.cpython*
 	if ! python3 pysrc/setup.py install --user; then \
 		echo ""; \
 		echo "------------------------------------------------------------------------------------------------------"; \
