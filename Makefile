@@ -4,7 +4,7 @@ build-here: src/* pysrc/setup.py
 
 install:
 	rm -f pysrc/arsd.cpython*
-	if ! python3 pysrc/setup.py install --user; then \
+	if ! python3 pysrc/setup.py install; then \
 		echo ""; \
 		echo "------------------------------------------------------------------------------------------------------"; \
 		echo ""; \
