@@ -7,3 +7,6 @@ bin
 log
 build
 __pycache__
+*.mp3
+*.wav
+*.png
