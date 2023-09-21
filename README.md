@@ -75,12 +75,12 @@ arsd.init(pick_batch, 10, 2) #extra argument - how many sets do you need?
 
 while True:
 	#The argument argument is passed into set_i of batch picker
-	batch = arsd.draw_batch(0)
-	validation_batch = arsd.draw_batch(1)
+	train_samples, train_filenames = arsd.draw_batch(0)
+	validation_samples, validation_filenames = arsd.draw_batch(1)
 ```
 
 ## File Normalization
 
-_Note:_ ARSD is still under active development, so you'll probably see this periodically even for correctly normalized files.
+_Note:_ ARSD is still under active development, so you'll probably see this error periodically even for correctly normalized files.
 
 ARSD expects audio files to be uniform in format, sample rate and channel count for maximum decode rate. Use [normalize-inplace.sh](./scripts/normalize-inplace.sh).

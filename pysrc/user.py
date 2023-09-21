@@ -18,7 +18,7 @@ def find(path, pattern):
 
 	return []
 
-all_files = np.asarray(find('/mnt/datasets/fma_full', '.*\\.mp3'))
+all_files = np.asarray(find('../../datasets/fma_full', '.*\\.mp3'))
 
 validation_split = len(all_files) // 16
 validation_shuffler = np.random.default_rng(0) #Make sure we always get the same split
@@ -37,18 +37,18 @@ arsd.init(pick_batch, 100, 2, thread_count=12, verbose=True)
 while True:
 	start = datetime.datetime.utcnow()
 	for _ in range(100):
-		data = arsd.draw_batch(0)
+		samples, names = arsd.draw_batch(0)
 
-		if np.isnan(data).any():
+		if np.isnan(samples).any():
 			print('discarding batch containing NaN')
 			exit()
 
-	data = arsd.draw_batch(1)
+	samples, names = arsd.draw_batch(1)
 
-	if np.isnan(data).any():
+	if np.isnan(samples).any():
 		print('discarding batch containing NaN')
 		exit()
 	end = datetime.datetime.utcnow()
 	
-	print(end, ' shape:', data.shape, 'time per:', end - start)
+	print(end, ' samples shape:', samples.shape, 'names shape:', names.shape, 'time per:', end - start)
 

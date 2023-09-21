@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "arsd.h"
 #include <math.h>
@@ -152,8 +153,8 @@ void* worker_thread(void* rng_state_uncast){
 	return NULL;
 }
 
-int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output){
-	*output = NULL;
+int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output_samples, char** output_filenames){
+	*output_samples = NULL;
 
 	while(1){
 		// Picking batch is inside this loop, as a file may fail to decode, requring new filenames to be picked
@@ -176,7 +177,10 @@ int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output){
 			
 			for(int32_t depth = 0; depth < config->backlog_depth; depth++){
 				if(batch_statuses[set_i][depth] == decoded){
-					*output = completed_batches[set_i][depth];
+					*output_samples = completed_batches[set_i][depth];
+					for(int i = 0; i < max_batch_size; i++){
+						memcpy(output_filenames[i], batch_file_names[set_i][depth][i], max_file_len);
+					}
 					// fprintf(stderr, "Needs filenames (returning)\n");
 					batch_statuses[set_i][depth] = needs_filenames;
 					break;
@@ -184,7 +188,7 @@ int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output){
 			}
 		});
 
-		if((*output) != NULL){
+		if((*output_samples) != NULL){
 			return 0;
 		}
 
