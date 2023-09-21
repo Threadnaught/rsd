@@ -38,8 +38,6 @@ while True:
 	start = datetime.datetime.utcnow()
 	for _ in range(100):
 		samples, names = arsd.draw_batch(0)
-		print(names)
-		print(samples.shape, names.shape)
 
 		if np.isnan(samples).any():
 			print('discarding batch containing NaN')
@@ -52,5 +50,5 @@ while True:
 		exit()
 	end = datetime.datetime.utcnow()
 	
-	print(end, ' shape:', samples.shape, 'time per:', end - start)
+	print(end, ' samples shape:', samples.shape, 'names shape:', names.shape, 'time per:', end - start)
 
