@@ -28,7 +28,7 @@ int32_t pick_batch(int32_t set_i, char** dest);
 // scheduler:
 int32_t init_scheduler(arsd_config_t* config_in, uint32_t* blocking_rng_state);
 int32_t BLOCKING_draw_batch(int32_t set_i, float* output, uint32_t* rng_state);
-int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output);
+int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output_samples, char** output_filenames);
 
 // decoder:
 int32_t init_decoder(arsd_config_t* config);

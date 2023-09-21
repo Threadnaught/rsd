@@ -231,7 +231,10 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 	raise_if_not_inited();
 	int32_t set_i = 0;
-	float* output = NULL;
+	float* output_samples = NULL;
+	char* output_filenames = NULL;
+	char* output_filename_ptrs[max_batch_size];
+
 	char* keywords[] = {
 		"set_i",
 		NULL
@@ -252,19 +255,34 @@ PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 		Py_RETURN_NONE;
 	}
 
-	if(NONBLOCKING_draw_batch(set_i, &output) != 0 || output == NULL){
+	output_filenames = (char*)malloc(max_batch_size * max_file_len);
+
+	for(int32_t i = 0; i < max_batch_size; i++)
+		output_filename_ptrs[i] = output_filenames + (i * max_file_len);
+
+	if(NONBLOCKING_draw_batch(set_i, &output_samples, output_filename_ptrs) != 0 || output_samples == NULL){
+		free(output_filenames);
 		//Set a generic error message if none is present
 		if(!PyErr_Occurred())
 			PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
 		Py_RETURN_NONE;
 	}
 
-	npy_intp dims[2] = {config.batch_size, config.clip_len_samples};
+	npy_intp sample_dims[2] = {config.batch_size, config.clip_len_samples};
+	PyObject* sample_arr = PyArray_SimpleNewFromData(2, sample_dims, NPY_FLOAT32, output_samples);
+	PyArray_ENABLEFLAGS((PyArrayObject*)sample_arr, NPY_ARRAY_OWNDATA);
 
-	PyObject* arr = PyArray_SimpleNewFromData(2, dims, NPY_FLOAT32, output);
-	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA);
+	PyArray_Descr* filename_desc = PyArray_DescrFromType(NPY_STRING);
+	filename_desc->elsize = max_file_len;
+	npy_intp filename_dims[2] = {config.batch_size};
+	PyObject* filename_arr = PyArray_NewFromDescr(&PyArray_Type, filename_desc, 1, filename_dims, NULL, output_filenames, 0, NULL);
+	PyArray_ENABLEFLAGS((PyArrayObject*)filename_arr, NPY_ARRAY_OWNDATA);
 
-	return arr;
+	PyTupleObject* ret = PyTuple_New(2);
+	PyTuple_SetItem(ret, 0, sample_arr);
+	PyTuple_SetItem(ret, 1, filename_arr);
+	
+	return ret;
 }
 
 PyObject* py_BLOCKING_draw_clip(PyObject *self, PyObject *args, PyObject *kwargs){
