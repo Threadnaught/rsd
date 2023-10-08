@@ -306,7 +306,10 @@ PyObject* py_BLOCKING_draw_clip(PyObject *self, PyObject *args, PyObject *kwargs
 
 	output = (float*)malloc(config.clip_len_samples * sizeof(float));
 
-	if(BLOCKING_draw_clip(filename, output, &blocking_rng_state) != 0){
+	int64_t seek_point_samples;
+	int64_t output_samples;
+
+	if(BLOCKING_draw_clip(filename, output, &blocking_rng_state, &seek_point_samples, &output_samples) != 0){
 		PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
 		Py_RETURN_NONE;
 	}

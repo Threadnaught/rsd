@@ -45,9 +45,16 @@ enum batch_status{
 
 static arsd_config_t* config;
 
-static float* completed_batches[max_sets][max_backlog];
-static char batch_file_names[max_sets][max_backlog][max_batch_size][max_file_len];
+//worker statuses
 static batch_status_t batch_statuses[max_sets][max_backlog];
+
+//worker inputs
+static char batch_file_names[max_sets][max_backlog][max_batch_size][max_file_len];
+
+//worker outputs
+static float* completed_batches[max_sets][max_backlog];
+static int64_t seek_pts_samples[max_sets][max_backlog][max_batch_size];
+static int64_t output_lens_samples[max_sets][max_backlog][max_batch_size];
 
 pthread_t threads[max_threads];
 uint32_t rng_states[max_threads];
@@ -63,25 +70,28 @@ void sleep_ms(int32_t ms){
 		exit(1);
 }
 
-int32_t BLOCKING_draw_batch(int32_t set_i, float* output, uint32_t* rng_state){
-	char batch_filenames[max_batch_size][max_file_len];
+// int32_t BLOCKING_draw_batch(int32_t set_i, float* output, uint32_t* rng_state){
+// 	char batch_filenames[max_batch_size][max_file_len];
 
-	char* batch_filename_ptrs[max_batch_size];
-	for(int32_t i = 0; i < max_batch_size; i++) batch_filename_ptrs[i] = batch_filenames[i];
+// 	char* batch_filename_ptrs[max_batch_size];
+// 	for(int32_t i = 0; i < max_batch_size; i++) batch_filename_ptrs[i] = batch_filenames[i];
 	
-	if(pick_batch(set_i, batch_filename_ptrs) != 0)
-		return -1;
+// 	if(pick_batch(set_i, batch_filename_ptrs) != 0)
+// 		return -1;
 	
 
-	for(int32_t i = 0; i < config->batch_size; i++){
-		// fprintf(stderr, "file:%s\n", batch_filenames[i]);
+// 	for(int32_t i = 0; i < config->batch_size; i++){
+// 		// fprintf(stderr, "file:%s\n", batch_filenames[i]);
 
-		if(BLOCKING_draw_clip(batch_filenames[i], output + (config->clip_len_samples * i), rng_state) != 0){
-			return -1;
-		}
-	}
-	return 0;
-}
+// 		int64_t seek_point_samples;
+// 		int64_t output_samples;
+
+// 		if(BLOCKING_draw_clip(batch_filenames[i], output + (config->clip_len_samples * i), rng_state, &seek_point_samples, &output_samples) != 0){
+// 			return -1;
+// 		}
+// 	}
+// 	return 0;
+// }
 
 void* worker_thread(void* rng_state_uncast){
 	uint32_t* rng_state = (uint32_t*)rng_state_uncast;
@@ -116,17 +126,25 @@ void* worker_thread(void* rng_state_uncast){
 			set -= 1;
 			depth -= 1;
 			for(int32_t i = 0; i < config->batch_size; i++){
+
+				// int64_t seek_point_samples;
+				// int64_t output_samples;
+
 				// fprintf(stderr, "Decoding %i %i (%s ...)\n", set, depth, (char*)batch_file_names[set][depth][i]);
 				if(BLOCKING_draw_clip(
 					batch_file_names[set][depth][i],
 					completed_batches[set][depth] + (config->clip_len_samples * i),
-					rng_state
+					rng_state,
+					&seek_pts_samples[set][depth][i],
+					&output_lens_samples[set][depth][i]
 				) != 0){
 					fprintf(stderr, "Discarding entire batch due to %s decode failure\n", batch_file_names[set][depth][i]);
 					fprintf(stderr, "See https://github.com/Threadnaught/arsd#file-normalization for details of how to normalize your input files.\n");
 					decode_failed = 1;
 					break;
 				}
+
+				fprintf(stderr, "seek pts: %li, output len: %li\n", seek_pts_samples[set][depth][i], output_lens_samples[set][depth][i]);
 			}
 
 			locking(common_lock, {

@@ -10,3 +10,4 @@ __pycache__
 *.mp3
 *.wav
 *.png
+*.egg-info
