@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "arsd.h"
+#include "rsd.h"
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -16,9 +16,9 @@
 	}\
 }
 
-static arsd_config_t* config;
+static rsd_config_t* config;
 
-int32_t init_decoder(arsd_config_t* config_in){
+int32_t init_decoder(rsd_config_t* config_in){
 	config = config_in;
 	if(!config_in->verbose)
 		av_log_set_level(AV_LOG_ERROR);

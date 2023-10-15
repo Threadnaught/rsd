@@ -4,7 +4,7 @@
 #include <time.h>
 #include <string.h>
 
-#include "arsd.h"
+#include "rsd.h"
 #include <math.h>
 
 #define locking(mut, code) {\
@@ -13,7 +13,7 @@
 	pthread_mutex_unlock(&mut);\
 }
 
-//The ARSD decode control flow looks like this:
+//The RSD decode control flow looks like this:
 //	[Python Thread]
 //	NONBLOCKING_draw_batch:
 //		Loop:
@@ -43,7 +43,7 @@ enum batch_status{
 };
 #define batch_status_t enum batch_status
 
-static arsd_config_t* config;
+static rsd_config_t* config;
 
 static float* completed_batches[max_sets][max_backlog];
 static char batch_file_names[max_sets][max_backlog][max_batch_size][max_file_len];
@@ -123,7 +123,7 @@ void* worker_thread(void* rng_state_uncast){
 					rng_state
 				) != 0){
 					fprintf(stderr, "Discarding entire batch due to %s decode failure\n", batch_file_names[set][depth][i]);
-					fprintf(stderr, "See https://github.com/Threadnaught/arsd#file-normalization for details of how to normalize your input files.\n");
+					fprintf(stderr, "See https://github.com/Threadnaught/rsd#file-normalization for details of how to normalize your input files.\n");
 					decode_failed = 1;
 					break;
 				}
@@ -196,7 +196,7 @@ int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output_samples, char** out
 	}
 }
 
-int32_t init_scheduler(arsd_config_t* config_in, uint32_t* blocking_rng_state){
+int32_t init_scheduler(rsd_config_t* config_in, uint32_t* blocking_rng_state){
 	config = config_in;
 	for(int32_t set = 0; set < config->set_count; set++){
 		for(int32_t depth = 0; depth < config->backlog_depth; depth++){
