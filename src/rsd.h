@@ -32,7 +32,7 @@ int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output_samples, char** out
 
 // decoder:
 int32_t init_decoder(rsd_config_t* config);
-int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_state);
+int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_state, int64_t* seek_point_samples, int64_t* output_samples);
 
 //Need this everywhere:
 #define timer(instruction, short_name) {\

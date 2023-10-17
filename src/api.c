@@ -208,6 +208,10 @@ PyObject* py_rsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		Py_RETURN_NONE;
 	}
 
+	// would be a memory leak if you could un-init rsd
+	// but you can't so it isn't
+	Py_IncRef(batch_picker);
+
 	blocking_rng_state = config.rng_seed;
 	if(blocking_rng_state == -1) {
 		blocking_rng_state = time(NULL);
