@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import arsd
+import rsd
 import soundfile as sf
 import os
 import stat
@@ -32,18 +32,18 @@ def pick_batch(batch_size, set_i):
 	ret = chosen_set[np.random.choice(len(chosen_set), [batch_size])]
 	return ret
 
-arsd.init(pick_batch, 100, 2, thread_count=12, verbose=True)
+rsd.init(pick_batch, 100, 2, thread_count=12, verbose=True)
 
 while True:
 	start = datetime.datetime.utcnow()
 	for _ in range(100):
-		samples, names = arsd.draw_batch(0)
+		samples, names = rsd.draw_batch(0)
 
 		if np.isnan(samples).any():
 			print('discarding batch containing NaN')
 			exit()
 
-	samples, names = arsd.draw_batch(1)
+	samples, names = rsd.draw_batch(1)
 
 	if np.isnan(samples).any():
 		print('discarding batch containing NaN')

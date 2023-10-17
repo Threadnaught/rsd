@@ -1,7 +1,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-#include "arsd.h"
+#include "rsd.h"
 
 #include <Python.h>
 
@@ -10,13 +10,13 @@
 
 #define raise_if_not_inited() \
 	if(!inited){\
-		PyErr_SetString(PyExc_ValueError, "Call arsd.init() before using arsd"); \
+		PyErr_SetString(PyExc_ValueError, "Call rsd.init() before using rsd"); \
 		return NULL; \
 	}
 
 PyFunctionObject* batch_picker = NULL;
 int32_t inited;
-static arsd_config_t config;
+static rsd_config_t config;
 
 // RNG state for main non-worker thread
 uint32_t blocking_rng_state;
@@ -115,8 +115,8 @@ int32_t pick_batch(int32_t set_i, char** dest){
 	return rc;
 }
 
-arsd_config_t defaults(){
-	arsd_config_t ret;
+rsd_config_t defaults(){
+	rsd_config_t ret;
 
 	ret.samplerate_hz = 44100;
 	ret.clip_len_samples = 33075;
@@ -132,7 +132,7 @@ arsd_config_t defaults(){
 	return ret;
 }
 
-int32_t validate_config(arsd_config_t cfg){
+int32_t validate_config(rsd_config_t cfg){
 	if(cfg.batch_size >= max_batch_size){
 		PyErr_SetString(PyExc_RuntimeError, "max_batch_size exceeded");
 		return 0;
@@ -152,7 +152,7 @@ int32_t validate_config(arsd_config_t cfg){
 	return 1;
 }
 
-PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
+PyObject* py_rsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 	if(inited){
 		PyErr_SetString(PyExc_RuntimeError, "AlReAdY iNiTeD");
 		Py_RETURN_NONE;
@@ -219,7 +219,7 @@ PyObject* py_arsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		(init_decoder(&config) != 0) ||
 		(init_scheduler(&config, &blocking_rng_state) != 0)
 	){
-		PyErr_SetString(PyExc_RuntimeError, "arsd init failed");
+		PyErr_SetString(PyExc_RuntimeError, "rsd init failed");
 		Py_RETURN_NONE;
 	}
 
@@ -323,25 +323,25 @@ PyObject* py_BLOCKING_draw_clip(PyObject *self, PyObject *args, PyObject *kwargs
 }
 
 
-PyMethodDef arsd_methods[] = {
-	{"init",				(PyCFunction*)py_arsd_init,				METH_VARARGS | METH_KEYWORDS,	""},
+PyMethodDef rsd_methods[] = {
+	{"init",				(PyCFunction*)py_rsd_init,				METH_VARARGS | METH_KEYWORDS,	""},
 	{"draw_batch",			(PyCFunction*)py_draw_batch,			METH_VARARGS | METH_KEYWORDS,	""},
 	{"BLOCKING_draw_clip",	(PyCFunction*)py_BLOCKING_draw_clip,		METH_VARARGS | METH_KEYWORDS,	""},
 	{NULL,					NULL,									0,								NULL}
 };
-PyModuleDef arsd_definition ={
+PyModuleDef rsd_definition ={
 	PyModuleDef_HEAD_INIT,
-	"arsd",
+	"rsd",
 	"Audio Repetitive Sampling Decoder",
 	-1,
-	arsd_methods
+	rsd_methods
 };
 
-PyMODINIT_FUNC PyInit_arsd(void){
+PyMODINIT_FUNC PyInit_rsd(void){
 	PyObject* module;
 
 	Py_Initialize();
 	import_array();
-	module = PyModule_Create(&arsd_definition);
+	module = PyModule_Create(&rsd_definition);
 	return module;
 }

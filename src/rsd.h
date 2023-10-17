@@ -6,7 +6,7 @@
 #define max_backlog 20
 #define max_threads 48
 
-struct arsd_config{
+struct rsd_config{
 	int32_t samplerate_hz;
 	int32_t clip_len_samples;
 	int32_t run_in_samples;
@@ -20,21 +20,19 @@ struct arsd_config{
 	int32_t verbose;
 };
 
-#define arsd_config_t struct arsd_config
+#define rsd_config_t struct rsd_config
 
 // api:
 int32_t pick_batch(int32_t set_i, char** dest);
 
 // scheduler:
-int32_t init_scheduler(arsd_config_t* config_in, uint32_t* blocking_rng_state);
+int32_t init_scheduler(rsd_config_t* config_in, uint32_t* blocking_rng_state);
 // int32_t BLOCKING_draw_batch(int32_t set_i, float* output, uint32_t* rng_state);
 int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output_samples, char** output_filenames);
 
 // decoder:
-int32_t init_decoder(arsd_config_t* config);
-
-//seek_point_samples and output_samples are outputs
-int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_state, int64_t* seek_point_samples, int64_t* output_samples);
+int32_t init_decoder(rsd_config_t* config);
+int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_state);
 
 //Need this everywhere:
 #define timer(instruction, short_name) {\
