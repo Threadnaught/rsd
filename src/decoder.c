@@ -11,7 +11,7 @@
 		fprintf(stderr, "cleanup_if assertion failed:%s\n", #statement);\
 		fprintf(stderr, \
 			"tb_per_sample %i, file_len_tb  %li, file_len_samples  %li, seek_point_samples  %li, seek_point_tb  %li, output_samples  %li, pts_samples  %li, read_start_samples  %li, read_end_samples  %li, av_read_frame_result %i\n",\
-			tb_per_sample, file_len_tb, file_len_samples, (*seek_point_samples), seek_point_tb, (*output_samples), pts_samples, read_start_samples, read_end_samples, av_read_frame_result);\
+			tb_per_sample, file_len_tb, file_len_samples, (*seek_point_samples), seek_point_tb, output_samples, pts_samples, read_start_samples, read_end_samples, av_read_frame_result);\
 		goto cleanup;\
 	}\
 }
@@ -26,7 +26,7 @@ int32_t init_decoder(rsd_config_t* config_in){
 	return 0;
 }
 
-int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_state, int64_t* seek_point_samples, int64_t* output_samples){
+int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_state, int64_t* seek_point_samples){
 	int32_t rc = -1;
 
 	AVFormatContext* format_context = NULL;
@@ -53,8 +53,10 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_s
 
 	int32_t av_read_frame_result = -1;
 
+	int64_t output_samples = -1;
+	
 	*seek_point_samples = -1;
-	*output_samples = -1;
+	
 
 	// fprintf(stderr, "Opening %s\n", filename);
 
@@ -94,10 +96,10 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_s
 
 	cleanup_if(avformat_seek_file(format_context, chosen_stream, 0, seek_point_tb, seek_point_tb, 0) < 0);
 
-	(*output_samples) = 0;
+	output_samples = 0;
 
 	// The fun bit
-	while ((*output_samples) < config->clip_len_samples) {
+	while (output_samples < config->clip_len_samples) {
 		av_read_frame_result = av_read_frame(format_context, packet);
 		if(av_read_frame_result != 0){
 			char errstring[100];
@@ -115,7 +117,7 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_s
 
 		avcodec_send_packet(decoder_context, packet);
 
-		while(avcodec_receive_frame(decoder_context, frame) == 0 && (*output_samples) < config->clip_len_samples){
+		while(avcodec_receive_frame(decoder_context, frame) == 0 && output_samples < config->clip_len_samples){
 			
 			// fprintf(stderr, "samplerate:%i\n", frame->sample_rate);
 			cleanup_if(frame->sample_rate != config->samplerate_hz);
@@ -132,7 +134,7 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_s
 
 			// fprintf(stderr, "read_start_samples %li ", read_start_samples);
 
-			read_end_samples = config->clip_len_samples - (*output_samples);
+			read_end_samples = config->clip_len_samples - output_samples;
 			read_end_samples = read_end_samples > frame->nb_samples ? frame->nb_samples : read_end_samples;
 			// fprintf(stderr, "read_end_samples %li ", read_end_samples);
 
@@ -141,20 +143,20 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_s
 			cleanup_if(frame->channels != 1);
 			
 			memcpy(
-				output_buffer + (*output_samples),
+				output_buffer + output_samples,
 				((float*)frame->data[0]) + read_start_samples, 
 				(read_end_samples - read_start_samples) * sizeof(float)
 			);
 
-			(*output_samples) += read_end_samples - read_start_samples;
+			output_samples += read_end_samples - read_start_samples;
 
-			// fprintf(stderr, "output_samples %li\n", (*output_samples));
+			// fprintf(stderr, "output_samples %li\n", output_samples);
 		}
 		av_packet_unref(packet);
 	}
 
 	rc = 0;
-	cleanup_if((*output_samples) != config->clip_len_samples);
+	cleanup_if(output_samples != config->clip_len_samples);
 
 	cleanup:
 

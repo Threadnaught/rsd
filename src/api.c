@@ -311,9 +311,8 @@ PyObject* py_BLOCKING_draw_clip(PyObject *self, PyObject *args, PyObject *kwargs
 	output = (float*)malloc(config.clip_len_samples * sizeof(float));
 
 	int64_t seek_point_samples;
-	int64_t output_samples;
 
-	if(BLOCKING_draw_clip(filename, output, &blocking_rng_state, &seek_point_samples, &output_samples) != 0){
+	if(BLOCKING_draw_clip(filename, output, &blocking_rng_state, &seek_point_samples) != 0){
 		PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
 		Py_RETURN_NONE;
 	}
@@ -326,11 +325,10 @@ PyObject* py_BLOCKING_draw_clip(PyObject *self, PyObject *args, PyObject *kwargs
 	return arr;
 }
 
-
 PyMethodDef rsd_methods[] = {
 	{"init",				(PyCFunction*)py_rsd_init,				METH_VARARGS | METH_KEYWORDS,	""},
 	{"draw_batch",			(PyCFunction*)py_draw_batch,			METH_VARARGS | METH_KEYWORDS,	""},
-	{"BLOCKING_draw_clip",	(PyCFunction*)py_BLOCKING_draw_clip,		METH_VARARGS | METH_KEYWORDS,	""},
+	{"BLOCKING_draw_clip",	(PyCFunction*)py_BLOCKING_draw_clip,	METH_VARARGS | METH_KEYWORDS,	""},
 	{NULL,					NULL,									0,								NULL}
 };
 PyModuleDef rsd_definition ={

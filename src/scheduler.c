@@ -54,7 +54,6 @@ static char batch_file_names[max_sets][max_backlog][max_batch_size][max_file_len
 //worker outputs
 static float* completed_batches[max_sets][max_backlog];
 static int64_t seek_pts_samples[max_sets][max_backlog][max_batch_size];
-static int64_t output_lens_samples[max_sets][max_backlog][max_batch_size];
 
 pthread_t threads[max_threads];
 uint32_t rng_states[max_threads];
@@ -135,8 +134,7 @@ void* worker_thread(void* rng_state_uncast){
 					batch_file_names[set][depth][i],
 					completed_batches[set][depth] + (config->clip_len_samples * i),
 					rng_state,
-					&seek_pts_samples[set][depth][i],
-					&output_lens_samples[set][depth][i]
+					&seek_pts_samples[set][depth][i]
 				) != 0){
 					fprintf(stderr, "Discarding entire batch due to %s decode failure\n", batch_file_names[set][depth][i]);
 					fprintf(stderr, "See https://github.com/Threadnaught/rsd#file-normalization for details of how to normalize your input files.\n");
@@ -144,7 +142,7 @@ void* worker_thread(void* rng_state_uncast){
 					break;
 				}
 
-				fprintf(stderr, "seek pts: %li, output len: %li\n", seek_pts_samples[set][depth][i], output_lens_samples[set][depth][i]);
+				fprintf(stderr, "seek pts (samples): %li\n", seek_pts_samples[set][depth][i]);
 			}
 
 			locking(common_lock, {
