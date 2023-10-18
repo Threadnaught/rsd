@@ -34,21 +34,27 @@ def pick_batch(batch_size, set_i):
 
 rsd.init(pick_batch, 100, 2, thread_count=12, verbose=True)
 
+#Draw individual file:
+clip, seek_point = rsd.BLOCKING_draw_clip(validation_files[0])
+print(clip, seek_point)
+# exit()
+
+#Start drawing batches:
 while True:
 	start = datetime.datetime.utcnow()
 	for _ in range(100):
-		samples, names = rsd.draw_batch(0)
+		samples, names, seek_pts = rsd.draw_batch(0)
 
 		if np.isnan(samples).any():
 			print('discarding batch containing NaN')
 			exit()
 
-	samples, names = rsd.draw_batch(1)
+	samples, names, seek_pts = rsd.draw_batch(1)
 
 	if np.isnan(samples).any():
 		print('discarding batch containing NaN')
 		exit()
 	end = datetime.datetime.utcnow()
 	
-	print(end, ' samples shape:', samples.shape, 'names shape:', names.shape, 'time per:', end - start)
+	print(end, ' samples shape:', samples.shape, 'names shape:', names.shape, 'seek points', seek_pts, 'time per:', end - start)
 
