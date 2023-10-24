@@ -37,47 +37,7 @@ Now you should be able to run `make install`
 
 ## How do I use it?
 
-Like this:
-```python
-import numpy as np
-import rsd
-
-# This function is your batch picker - responsible for providing filenames to decode
-files = np.asarray(['file1.mp3', 'file2.mp3'])
-def pick_batch(batch_size):
-	return files[np.random.choice(len(files), [batch_size])]
-
-#Second argument is your batch size
-rsd.init(pick_batch, 10)
-
-while True:
-	batch = rsd.draw_batch()
-	print(batch.shape) #Do something with the batch
-```
-
-### What about training validation splits?
-
-Right here:
-```python
-import numpy as np
-import rsd
-
-files = np.asarray(['file1.mp3', 'file2.mp3'])
-files_validation = np.asarray(['file3.mp3', 'file4.mp3'])
-
-def pick_batch(batch_size, set_i): #notice the extra set_i argument - either 0 or 1
-	if set_i == 0:
-		return files[np.random.choice(len(files), [batch_size])]
-	else:
-		return files_validation[np.random.choice(len(files_validation), [batch_size])]
-
-rsd.init(pick_batch, 10, 2) #extra argument - how many sets do you need?
-
-while True:
-	#The argument argument is passed into set_i of batch picker
-	train_samples, train_filenames = rsd.draw_batch(0)
-	validation_samples, validation_filenames = rsd.draw_batch(1)
-```
+Take a look at `pysrc/user.py` for a minimum viable usage.
 
 ## File Normalization
 
