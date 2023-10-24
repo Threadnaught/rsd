@@ -208,6 +208,10 @@ PyObject* py_rsd_init(PyObject *self, PyObject *args, PyObject *kwargs){
 		Py_RETURN_NONE;
 	}
 
+	// would be a memory leak if you could un-init rsd
+	// but you can't so it isn't
+	Py_IncRef(batch_picker);
+
 	blocking_rng_state = config.rng_seed;
 	if(blocking_rng_state == -1) {
 		blocking_rng_state = time(NULL);
@@ -234,6 +238,7 @@ PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 	float* output_samples = NULL;
 	char* output_filenames = NULL;
 	char* output_filename_ptrs[max_batch_size];
+	int64_t* output_seek_pts_samples;
 
 	char* keywords[] = {
 		"set_i",
@@ -260,7 +265,7 @@ PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 	for(int32_t i = 0; i < max_batch_size; i++)
 		output_filename_ptrs[i] = output_filenames + (i * max_file_len);
 
-	if(NONBLOCKING_draw_batch(set_i, &output_samples, output_filename_ptrs) != 0 || output_samples == NULL){
+	if(NONBLOCKING_draw_batch(set_i, &output_samples, output_filename_ptrs, &output_seek_pts_samples) != 0 || output_samples == NULL){
 		free(output_filenames);
 		//Set a generic error message if none is present
 		if(!PyErr_Occurred())
@@ -278,9 +283,14 @@ PyObject* py_draw_batch(PyObject *self, PyObject *args, PyObject *kwargs){
 	PyObject* filename_arr = PyArray_NewFromDescr(&PyArray_Type, filename_desc, 1, filename_dims, NULL, output_filenames, 0, NULL);
 	PyArray_ENABLEFLAGS((PyArrayObject*)filename_arr, NPY_ARRAY_OWNDATA);
 
-	PyTupleObject* ret = PyTuple_New(2);
+	npy_intp seek_pt_dims[2] = {config.batch_size};
+	PyObject* seek_pts_arr = PyArray_SimpleNewFromData(1, seek_pt_dims, NPY_INT64, output_seek_pts_samples);
+	PyArray_ENABLEFLAGS((PyArrayObject*)seek_pts_arr, NPY_ARRAY_OWNDATA);
+
+	PyTupleObject* ret = PyTuple_New(3);
 	PyTuple_SetItem(ret, 0, sample_arr);
 	PyTuple_SetItem(ret, 1, filename_arr);
+	PyTuple_SetItem(ret, 2, seek_pts_arr);
 	
 	return ret;
 }
@@ -306,7 +316,9 @@ PyObject* py_BLOCKING_draw_clip(PyObject *self, PyObject *args, PyObject *kwargs
 
 	output = (float*)malloc(config.clip_len_samples * sizeof(float));
 
-	if(BLOCKING_draw_clip(filename, output, &blocking_rng_state) != 0){
+	int64_t seek_point_samples;
+
+	if(BLOCKING_draw_clip(filename, output, &blocking_rng_state, &seek_point_samples) != 0){
 		PyErr_SetString(PyExc_RuntimeError, "Failed to draw clip");
 		Py_RETURN_NONE;
 	}
@@ -316,14 +328,18 @@ PyObject* py_BLOCKING_draw_clip(PyObject *self, PyObject *args, PyObject *kwargs
 	PyObject* arr = PyArray_SimpleNewFromData(1, dims, NPY_FLOAT32, output);
 	PyArray_ENABLEFLAGS((PyArrayObject*)arr, NPY_ARRAY_OWNDATA);
 
-	return arr;
-}
+	PyObject* ret = PyTuple_New(2);
 
+	PyTuple_SetItem(ret, 0, arr);
+	PyTuple_SetItem(ret, 1, PyLong_FromLong(seek_point_samples));
+	
+	return ret;
+}
 
 PyMethodDef rsd_methods[] = {
 	{"init",				(PyCFunction*)py_rsd_init,				METH_VARARGS | METH_KEYWORDS,	""},
 	{"draw_batch",			(PyCFunction*)py_draw_batch,			METH_VARARGS | METH_KEYWORDS,	""},
-	{"BLOCKING_draw_clip",	(PyCFunction*)py_BLOCKING_draw_clip,		METH_VARARGS | METH_KEYWORDS,	""},
+	{"BLOCKING_draw_clip",	(PyCFunction*)py_BLOCKING_draw_clip,	METH_VARARGS | METH_KEYWORDS,	""},
 	{NULL,					NULL,									0,								NULL}
 };
 PyModuleDef rsd_definition ={

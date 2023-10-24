@@ -11,7 +11,7 @@
 		fprintf(stderr, "cleanup_if assertion failed:%s\n", #statement);\
 		fprintf(stderr, \
 			"tb_per_sample %i, file_len_tb  %li, file_len_samples  %li, seek_point_samples  %li, seek_point_tb  %li, output_samples  %li, pts_samples  %li, read_start_samples  %li, read_end_samples  %li, av_read_frame_result %i\n",\
-			tb_per_sample, file_len_tb, file_len_samples, seek_point_samples, seek_point_tb, output_samples, pts_samples, read_start_samples, read_end_samples, av_read_frame_result);\
+			tb_per_sample, file_len_tb, file_len_samples, (*seek_point_samples), seek_point_tb, output_samples, pts_samples, read_start_samples, read_end_samples, av_read_frame_result);\
 		goto cleanup;\
 	}\
 }
@@ -26,7 +26,7 @@ int32_t init_decoder(rsd_config_t* config_in){
 	return 0;
 }
 
-int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_state){
+int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_state, int64_t* seek_point_samples){
 	int32_t rc = -1;
 
 	AVFormatContext* format_context = NULL;
@@ -45,15 +45,18 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_s
 
 	int64_t file_len_tb = -1;
 	int64_t file_len_samples = -1;
-	int64_t seek_point_samples = -1;
 	int64_t seek_point_tb = -1;
-	int64_t output_samples = -1;
 
 	int64_t pts_samples = -1;
 	int64_t read_start_samples = -1;
 	int64_t read_end_samples = -1;
 
 	int32_t av_read_frame_result = -1;
+
+	int64_t output_samples = -1;
+	
+	*seek_point_samples = -1;
+	
 
 	// fprintf(stderr, "Opening %s\n", filename);
 
@@ -81,14 +84,14 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_s
 	file_len_samples = file_len_tb / tb_per_sample;
 	cleanup_if((file_len_tb % tb_per_sample) != 0);
 
-	seek_point_samples =
+	(*seek_point_samples) =
 	 	((((long)rand_r(rng_state)) << 32) | ((long)rand_r(rng_state)))
 	 	% (long)(file_len_samples - (config->clip_len_samples + 10000)); //extra bodge factor
 
 	//seek_point_samples = 0;
 
 	// Due to MP3 being weird, we need to start decoding ~2000 samples before we start to read
-	seek_point_tb = (seek_point_samples - config->run_in_samples) * tb_per_sample;
+	seek_point_tb = ((*seek_point_samples) - config->run_in_samples) * tb_per_sample;
 	seek_point_tb = seek_point_tb < 0 ? 0 : seek_point_tb;
 
 	cleanup_if(avformat_seek_file(format_context, chosen_stream, 0, seek_point_tb, seek_point_tb, 0) < 0);
@@ -125,7 +128,7 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_s
 			cleanup_if(frame->pts % tb_per_sample != 0);
 			
 			//read_start_samples and read_end_samples are relative to the returned frame
-			read_start_samples = seek_point_samples - pts_samples;
+			read_start_samples = (*seek_point_samples) - pts_samples;
 			read_start_samples = read_start_samples > frame->nb_samples ? frame->nb_samples : read_start_samples;
 			read_start_samples = read_start_samples > 0 ? read_start_samples : 0;
 
@@ -147,7 +150,7 @@ int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_s
 
 			output_samples += read_end_samples - read_start_samples;
 
-			// fprintf(stderr, "output_samples %li\n", (*output_samples));
+			// fprintf(stderr, "output_samples %li\n", output_samples);
 		}
 		av_packet_unref(packet);
 	}

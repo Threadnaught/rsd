@@ -27,12 +27,12 @@ int32_t pick_batch(int32_t set_i, char** dest);
 
 // scheduler:
 int32_t init_scheduler(rsd_config_t* config_in, uint32_t* blocking_rng_state);
-int32_t BLOCKING_draw_batch(int32_t set_i, float* output, uint32_t* rng_state);
-int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output_samples, char** output_filenames);
+// int32_t BLOCKING_draw_batch(int32_t set_i, float* output, uint32_t* rng_state);
+int32_t NONBLOCKING_draw_batch(int32_t set_i, float** output_samples, char** output_filenames, int64_t** output_seek_pts_samples);
 
 // decoder:
 int32_t init_decoder(rsd_config_t* config);
-int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_state);
+int32_t BLOCKING_draw_clip(char* filename, float* output_buffer, uint32_t* rng_state, int64_t* seek_point_samples);
 
 //Need this everywhere:
 #define timer(instruction, short_name) {\
